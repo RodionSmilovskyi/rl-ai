@@ -1,0 +1,37 @@
+[project]
+name = "rl-ai"
+version = "0.1.0"
+description = "Reinforcement Learning training pipeline with ParallelSAC"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "torch==2.6.0+cpu",
+    "stable-baselines3",
+    "gymnasium[mujoco]",
+    "tensorboard",
+    "boto3==1.38.3",
+    "sagemaker==2.243.3",
+    "imageio[ffmpeg]",
+    "moviepy",
+    "pygame",
+    "setuptools<70.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pip-tools",
+    "pytest",
+    "black",
+    "isort",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.pip-tools]
+allow-unsafe = true
+strip-extras = true
+index-url = "https://pypi.org/simple"
+extra-index-url = [
+    "https://download.pytorch.org/whl/cpu"
+]

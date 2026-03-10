@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug local train",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix", "sac-pendulum-local",
+                "--total-timesteps", "40000",
+                "--seed", "0",
+                "--lr", "0.001",
+                "--batch-size", "256",
+                "--env-id", "Pendulum-v1"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        {
+            "name": "Debug aws train",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/aws-train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix", "sac-pendulum-aws",
+                "--total-timesteps", "100000",
+                "--seed", "0",
+                "--lr", "0.0003",
+                "--batch-size", "256",
+                "--env-id", "Pendulum-v1"
+            ]
+        }
+    ]
+}
