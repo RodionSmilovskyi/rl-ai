@@ -9,20 +9,16 @@ dependencies = [
     "stable-baselines3",
     "gymnasium[mujoco]",
     "tensorboard",
-    "boto3==1.38.3",
-    "sagemaker==2.243.3",
     "imageio[ffmpeg]",
     "moviepy",
     "pygame",
-    "setuptools<70.0.0"
+    "setuptools<70.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pip-tools",
-    "pytest",
-    "black",
-    "isort",
+    "boto3==1.38.3",
+    "sagemaker==2.243.3",
 ]
 
 [tool.setuptools]

@@ -1,12 +1,13 @@
 import os
 import gymnasium as gym
+from stable_baselines3.common.monitor import Monitor
 
 def make_env(env_id, seed, rank):
     """
     Utility for creating a gymnasium environment with a unique seed and rank.
     """
     def _init():
-        env = gym.make(env_id, render_mode="rgb_array")
+        env = Monitor(gym.make(env_id, render_mode="rgb_array"))
         env.reset(seed=seed + rank)
         return env
     return _init
