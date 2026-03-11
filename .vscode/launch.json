@@ -2,10 +2,43 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug local train",
+            "name": "Debug local train PPO",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/train.py",
+            "program": "${workspaceFolder}/src/train_ppo.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix", "ppo-pendulum-local",
+                "--total-timesteps", "400000",
+                "--seed", "0",
+                "--lr", "0.0003",
+                "--batch-size", "64",
+                "--env-id", "Pendulum-v1"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        {
+            "name": "Debug aws train PPO",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/aws-train-ppo.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix", "ppo-pendulum-aws",
+                "--total-timesteps", "400000",
+                "--seed", "0",
+                "--lr", "0.0003",
+                "--batch-size", "64",
+                "--env-id", "Pendulum-v1"
+            ]
+        },
+        {
+            "name": "Debug local train SAC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train_sac.py",
             "console": "integratedTerminal",
             "args": [
                 "--prefix", "sac-pendulum-local",
@@ -20,10 +53,10 @@
             }
         },
         {
-            "name": "Debug aws train",
+            "name": "Debug aws train SAC",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/aws-train.py",
+            "program": "${workspaceFolder}/aws-train-sac.py",
             "console": "integratedTerminal",
             "args": [
                 "--prefix", "sac-pendulum-aws",
