@@ -36,7 +36,7 @@ farama-notifications==0.0.4
     # via
     #   -c dev-requirements.txt
     #   gymnasium
-filelock==3.25.1
+filelock==3.25.2
     # via
     #   -c dev-requirements.txt
     #   torch
@@ -81,6 +81,10 @@ kiwisolver==1.5.0
     # via
     #   -c dev-requirements.txt
     #   matplotlib
+lxml==6.0.2
+    # via
+    #   -c dev-requirements.txt
+    #   urdf-parser-py
 markdown==3.10.2
     # via
     #   -c dev-requirements.txt
@@ -151,6 +155,10 @@ psutil==7.2.2
     # via
     #   -c dev-requirements.txt
     #   imageio
+pybullet==3.2.7
+    # via
+    #   -c dev-requirements.txt
+    #   rl-ai (pyproject.toml)
 pygame==2.6.1
     # via
     #   -c dev-requirements.txt
@@ -172,6 +180,10 @@ python-dotenv==1.2.2
     # via
     #   -c dev-requirements.txt
     #   moviepy
+pyyaml==6.0.3
+    # via
+    #   -c dev-requirements.txt
+    #   urdf-parser-py
 six==1.17.0
     # via
     #   -c dev-requirements.txt
@@ -208,6 +220,10 @@ typing-extensions==4.15.0
     #   grpcio
     #   gymnasium
     #   torch
+urdf-parser-py==0.0.4
+    # via
+    #   -c dev-requirements.txt
+    #   rl-ai (pyproject.toml)
 werkzeug==3.1.6
     # via
     #   -c dev-requirements.txt

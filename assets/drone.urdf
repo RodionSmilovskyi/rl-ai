@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<robot name="volador_vx35_280g">
+  <gazebo kv="3750" props_diameter="0.0765" voltage="14.8" />
+
+  <material name="blue">
+    <color rgba="0.1 0.1 0.8 0.7"/> </material>
+  <material name="red">
+    <color rgba="0.8 0.1 0.1 0.7"/> </material>
+  <material name="gray">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+
+  <link name="body_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.216"/>
+      <inertia ixx="0.000058" ixy="0" ixz="0" iyy="0.000288" iyz="0" izz="0.000288"/>
+    </inertial>
+    <visual>
+      <geometry><box size="0.12 0.04 0.05"/></geometry>
+      <material name="gray"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.12 0.04 0.05"/></geometry>
+    </collision>
+  </link>
+
+  <link name="rotor_1"> <inertial><mass value="0.016"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000010"/></inertial>
+    <visual><geometry><cylinder radius="0.038" length="0.01"/></geometry><material name="blue"/></visual>
+  </link>
+  <link name="rotor_3"> <inertial><mass value="0.016"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000010"/></inertial>
+    <visual><geometry><cylinder radius="0.038" length="0.01"/></geometry><material name="blue"/></visual>
+  </link>
+
+  <link name="rotor_2"> <inertial><mass value="0.016"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000010"/></inertial>
+    <visual><geometry><cylinder radius="0.038" length="0.01"/></geometry><material name="red"/></visual>
+  </link>
+  <link name="rotor_4"> <inertial><mass value="0.016"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000010"/></inertial>
+    <visual><geometry><cylinder radius="0.038" length="0.01"/></geometry><material name="red"/></visual>
+  </link>
+
+  <joint name="joint_rotor_1" type="fixed">
+    <parent link="body_link"/><child link="rotor_1"/>
+    <origin xyz="0.06 0.06 0" rpy="0 0 0"/>
+  </joint>
+  <joint name="joint_rotor_2" type="fixed">
+    <parent link="body_link"/><child link="rotor_2"/>
+    <origin xyz="-0.06 0.06 0" rpy="0 0 0"/>
+  </joint>
+  <joint name="joint_rotor_3" type="fixed">
+    <parent link="body_link"/><child link="rotor_3"/>
+    <origin xyz="0.06 -0.06 0" rpy="0 0 0"/>
+  </joint>
+  <joint name="joint_rotor_4" type="fixed">
+    <parent link="body_link"/><child link="rotor_4"/>
+    <origin xyz="-0.06 -0.06 0" rpy="0 0 0"/>
+  </joint>
+</robot>

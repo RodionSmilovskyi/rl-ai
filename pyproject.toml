@@ -13,6 +13,8 @@ dependencies = [
     "moviepy",
     "pygame",
     "setuptools<70.0.0",
+    "pybullet",
+    "urdf-parser-py",
 ]
 
 [project.optional-dependencies]

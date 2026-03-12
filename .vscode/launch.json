@@ -66,6 +66,16 @@
                 "--batch-size", "256",
                 "--env-id", "Pendulum-v1"
             ]
+        },
+        {
+            "name": "Test Drone Render",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/test_drone_render.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
         }
     ]
 }
