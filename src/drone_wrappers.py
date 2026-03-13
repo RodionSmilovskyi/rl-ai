@@ -3,6 +3,8 @@ import numpy as np
 import time
 from typing import Any, Tuple, Dict, Optional, Union
 
+from settings import K_STEPS, SUB_EPISODE_LIMIT, PHYSICS_FREQ, GAMMA
+
 class PIDController:
     """PID Controller with Derivative-on-Measurement to prevent setpoint kicks."""
     def __init__(self, Kp: float, Ki: float, Kd: float, setpoint: float = 0.0):
@@ -84,13 +86,13 @@ class DroneHRLWrapper(gym.Wrapper):
     HRL Wrapper for DroneEnv.
     Executes K-steps of low-level control for each high-level action.
     """
-    def __init__(self, env: gym.Env, k_steps: int = 5, sub_episode_limit: int = 50, gamma: float = 0.99):
+    def __init__(self, env: gym.Env, k_steps: int = K_STEPS, sub_episode_limit: int = SUB_EPISODE_LIMIT, gamma: float = GAMMA):
         super().__init__(env)
         self.k_steps = k_steps
         self.sub_episode_limit = sub_episode_limit
         self.gamma = gamma
         self.fc = FlightController()
-        self.physics_freq = 240.0
+        self.physics_freq = PHYSICS_FREQ
         
         self.observation_space = gym.spaces.Box(
             low=np.array([0, -1, -1, -1, -1, 0], dtype=np.float32),
@@ -154,8 +156,6 @@ class DroneHRLWrapper(gym.Wrapper):
         if options is None:
             options = {}
         
-        if "target_pos" not in options:
-            options["target_pos"] = [0.0, 0.0, 0.0]
         if "initial_pos" not in options:
             start_alt = options.get("start_alt", 0.05)
             options["initial_pos"] = [0.0, 0.0, start_alt]
@@ -185,7 +185,7 @@ class DroneHRLWrapper(gym.Wrapper):
         for _ in range(self.k_steps):
             fc_state = self._get_full_state_for_fc(self.last_full_obs)
             rc_commands = self.fc.compute_rc_commands(action, fc_state, 1.0/self.physics_freq)
-            rc_commands[0]  =1280
+            
             full_obs, _, env_terminated, env_truncated, info = self.env.step(rc_commands)
             self.last_full_obs = full_obs
             

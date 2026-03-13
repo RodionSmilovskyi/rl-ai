@@ -9,27 +9,11 @@ import pybullet_data
 from urdf_parser_py import urdf
 from pybullet_utils import bullet_client as bc
 
-# Constants
-MIN_VAL = 1e-4
-DRONE_IMG_WIDTH = 256
-DRONE_IMG_HEIGHT = 256
-NUMBER_OF_CHANNELS = 3
-MAX_DISTANCE = 4  # meters
-MAX_ALTITUDE = 1.0  # meters
-MIN_ALTITUDE = 0.04  # meters
-START_ALTITUDE = 0.05
-FRAME_NUMBER = 500
-THRUST_TO_WEIGHT_RATIO = 4
-DRONE_WEIGHT = 0.280
-G = 9.81
-MAX_THROTTLE = 9.82 / 4.0
-TILT_LIMIT = np.deg2rad(55)
-MAX_YAW_RATE_RADS = np.deg2rad(360)
-MAX_XY_SHIFT = 1.0 # Meters
-MAX_VELOCITY = 5.0 # Meters per second
-
-WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-ASSETS_DIRECTORY = os.path.join(WORKING_DIRECTORY, "../assets")
+from settings import (
+    G, MAX_THROTTLE, TILT_LIMIT, MAX_YAW_RATE_RADS, MAX_XY_SHIFT, MAX_VELOCITY,
+    MAX_ALTITUDE, MIN_ALTITUDE, START_ALTITUDE, MAX_DISTANCE, MIN_VAL,
+    DRONE_IMG_WIDTH, DRONE_IMG_HEIGHT, NUMBER_OF_CHANNELS, ASSETS_DIRECTORY
+)
 
 def convert_range(
     x: float, x_min: float, x_max: float, y_min: float, y_max: float
@@ -114,15 +98,20 @@ class DroneEnv(gym.Env):
 
         self.plane_id = self.client.loadURDF("plane.urdf")
 
+        # Drone initialization parameters
+        initial_pos = options.get("initial_pos", [MIN_VAL, MIN_VAL, START_ALTITUDE])
+        self.initial_pos_np = np.array(initial_pos)
+
         # Sample or get target position
         if options and "target_pos" in options:
-            random_position = np.array(options["target_pos"])
+            target_position = np.array(options["target_pos"])
         else:
-            random_position = self.world_space.sample()
-            initial_dist = np.linalg.norm(random_position - np.array([0, 0, 0]))
-            while initial_dist < 5:
-                random_position = self.world_space.sample()
-                initial_dist = np.linalg.norm(random_position - np.array([0, 0, 0]))
+            # Ensure target and drone do not overlap (at least 0.5m away)
+            while True:
+                target_position = self.world_space.sample()
+                # Ensure it's not too close to the drone's initial position
+                if np.linalg.norm(target_position - self.initial_pos_np) >= 0.5:
+                    break
 
         # Target initialization
         collision_shape_id = self.client.createCollisionShape(
@@ -136,15 +125,14 @@ class DroneEnv(gym.Env):
         self.target_id = self.client.createMultiBody(
             baseCollisionShapeIndex=collision_shape_id,
             baseVisualShapeIndex=visual_shape_id,
-            basePosition=random_position.tolist(),
+            basePosition=target_position.tolist(),
         )
-        self.target_pos = random_position
+        self.target_pos = target_position
 
         # Drone initialization
-        initial_pos = options.get("initial_pos") if options else None
         self.drone_id = self.client.loadURDF(
             os.path.join(ASSETS_DIRECTORY, "drone.urdf"),
-            initial_pos if initial_pos is not None else [MIN_VAL, MIN_VAL, START_ALTITUDE]
+            initial_pos
         )
         self.client.changeDynamics(self.drone_id, -1, linearDamping=0.01, angularDamping=0.1)
         
@@ -152,7 +140,7 @@ class DroneEnv(gym.Env):
             cameraDistance=0.5,
             cameraYaw=45, 
             cameraPitch=-30, 
-            cameraTargetPosition=initial_pos if initial_pos is not None else [MIN_VAL, MIN_VAL, START_ALTITUDE]
+            cameraTargetPosition=initial_pos
         )
 
         linear_velocity, _ = self.client.getBaseVelocity(self.drone_id)
@@ -293,7 +281,8 @@ class DroneEnv(gym.Env):
     def _get_cumulative_shift(self) -> list:
         drone_pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
         drone_pos = np.array(drone_pos)
-        diff_world = drone_pos - self.target_pos
+        # TODO: change to drone_pos - initial pos
+        diff_world = drone_pos - self.initial_pos_np 
         shift_x = np.clip(diff_world[0] / MAX_XY_SHIFT, -1.0, 1.0)
         shift_y = np.clip(diff_world[1] / MAX_XY_SHIFT, -1.0, 1.0)
         return [shift_x, shift_y]

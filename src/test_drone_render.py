@@ -2,14 +2,15 @@ import gymnasium as gym
 import numpy as np
 from drone_env import DroneEnv
 from drone_wrappers import DroneHRLWrapper
+from settings import SUB_EPISODE_LIMIT
 
 def main():
     # Create the base environment
     base_env = DroneEnv(render_mode="human", use_gui=True)
     
     # Wrap with HRL wrapper
-    # k_steps=5, sub_episode_limit=50
-    env = DroneHRLWrapper(base_env, k_steps=20, sub_episode_limit=24)
+    # Uses defaults from settings.py (K_STEPS, SUB_EPISODE_LIMIT, etc.)
+    env = DroneHRLWrapper(base_env)
     
     goal_alt = 0.5
     start_alt = 0.5
@@ -18,9 +19,8 @@ def main():
     print(f"Initial Observation: {obs}")
     
     # Run for some sub-episodes
-    for i in range(100):
+    for i in range(SUB_EPISODE_LIMIT):
         # High-level action: [desired_alt, desired_roll, desired_pitch, desired_yaw_rate]
-        # Requesting goal_alt, which should be hover if start_alt == goal_alt
         action = np.array([goal_alt, 0.0, 0.0, 0.0], dtype=np.float32)
         
         obs, reward, terminated, truncated, info = env.step(action)
