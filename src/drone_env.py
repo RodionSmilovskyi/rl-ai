@@ -15,16 +15,16 @@ DRONE_IMG_WIDTH = 256
 DRONE_IMG_HEIGHT = 256
 NUMBER_OF_CHANNELS = 3
 MAX_DISTANCE = 4  # meters
-MAX_ALTITUDE = 1  # meters
+MAX_ALTITUDE = 1.0  # meters
 MIN_ALTITUDE = 0.04  # meters
 START_ALTITUDE = 0.05
 FRAME_NUMBER = 500
 THRUST_TO_WEIGHT_RATIO = 4
 DRONE_WEIGHT = 0.280
-MAX_THROTTLE = 9.82/4
+G = 9.81
+MAX_THROTTLE = 9.82 / 4.0
 TILT_LIMIT = np.deg2rad(55)
 MAX_YAW_RATE_RADS = np.deg2rad(360)
-G = 9.81
 MAX_XY_SHIFT = 1.0 # Meters
 MAX_VELOCITY = 5.0 # Meters per second
 
@@ -114,12 +114,15 @@ class DroneEnv(gym.Env):
 
         self.plane_id = self.client.loadURDF("plane.urdf")
 
-        # Sample initial position
-        random_position = self.world_space.sample()
-        initial_dist = np.linalg.norm(random_position - np.array([0, 0, 0]))
-        while initial_dist < 5:
+        # Sample or get target position
+        if options and "target_pos" in options:
+            random_position = np.array(options["target_pos"])
+        else:
             random_position = self.world_space.sample()
             initial_dist = np.linalg.norm(random_position - np.array([0, 0, 0]))
+            while initial_dist < 5:
+                random_position = self.world_space.sample()
+                initial_dist = np.linalg.norm(random_position - np.array([0, 0, 0]))
 
         # Target initialization
         collision_shape_id = self.client.createCollisionShape(

@@ -1,33 +1,38 @@
 import gymnasium as gym
-import time
 import numpy as np
 from drone_env import DroneEnv
+from drone_wrappers import DroneHRLWrapper
 
 def main():
-    # Create the environment with human render mode to see the GUI
-    env = DroneEnv(render_mode="human", use_gui=True)
+    # Create the base environment
+    base_env = DroneEnv(render_mode="human", use_gui=True)
     
-    obs, info = env.reset()
-    print("Environment reset successful")
+    # Wrap with HRL wrapper
+    # k_steps=5, sub_episode_limit=50
+    env = DroneHRLWrapper(base_env, k_steps=20, sub_episode_limit=24)
     
-    # Run for a few steps with a simple hover-like command
-    # rc_command: [throttle, roll, pitch, yaw] in [1000, 2000]
-    # 1500 is neutral for roll, pitch, yaw.
-    # We'll try a slightly higher throttle to see if it moves.
+    goal_alt = 0.5
+    start_alt = 0.5
+    obs, info = env.reset(options={"goal_alt": goal_alt, "start_alt": start_alt})
+    print(f"Environment reset successful. Goal Altitude: {goal_alt}, Start Altitude: {start_alt}")
+    print(f"Initial Observation: {obs}")
     
-    for i in range(200):
-        # Slightly above hover throttle (assuming ~1280 is hover for 280g drone with TWR 4)
-        # Let's try 1400 to see some movement
-        action = np.array([1400, 1500, 1500, 1500], dtype=np.float32)
+    # Run for some sub-episodes
+    for i in range(100):
+        # High-level action: [desired_alt, desired_roll, desired_pitch, desired_yaw_rate]
+        # Requesting goal_alt, which should be hover if start_alt == goal_alt
+        action = np.array([goal_alt, 0.0, 0.0, 0.0], dtype=np.float32)
         
         obs, reward, terminated, truncated, info = env.step(action)
         
-        if i % 20 == 0:
-            print(f"Step {i}: Altitude={obs['altitude'][0]:.4f}, Velocity_Z={info['vertical_velocity']:.4f}")
+        if i % 1 == 0:
+            print(f"Sub-Episode {i}:")
+            print(f"  Obs (alt, sx, sy, vx, vy, goal): {obs}")
+            print(f"  Reward: {reward:.4f}")
             
         if terminated or truncated:
-            print("Episode finished")
-            obs, info = env.reset()
+            print(f"Episode finished. Reason: {'Terminated' if terminated else 'Truncated'}")
+            obs, info = env.reset(options={"goal_alt": goal_alt, "start_alt": start_alt})
             
     env.close()
     print("Test finished")
