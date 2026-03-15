@@ -217,7 +217,28 @@ class DroneEnv(gym.Env):
 
     def render(self):
         if self.render_mode == "rgb_array":
-            return self.drone_img
+            pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
+            view_matrix = self.client.computeViewMatrixFromYawPitchRoll(
+                cameraTargetPosition=pos,
+                distance=1.5,
+                yaw=45.0,
+                pitch=-30.0,
+                roll=0.0,
+                upAxisIndex=2
+            )
+            proj_matrix = self.client.computeProjectionMatrixFOV(
+                fov=60, aspect=1.0, nearVal=0.1, farVal=100.0
+            )
+            (_, _, rgb, _, _) = self.client.getCameraImage(
+                width=DRONE_IMG_WIDTH,
+                height=DRONE_IMG_HEIGHT,
+                viewMatrix=view_matrix,
+                projectionMatrix=proj_matrix,
+                renderer=p.ER_TINY_RENDERER
+            )
+
+            rgb_array = np.array(rgb, dtype=np.uint8).reshape((DRONE_IMG_HEIGHT, DRONE_IMG_WIDTH, 4))
+            return rgb_array[:, :, :3]
         return None
 
     def close(self):
@@ -275,8 +296,34 @@ class DroneEnv(gym.Env):
         return round(pos[2] / MAX_ALTITUDE, 4)
 
     def _get_drone_view(self) -> np.ndarray:
-        # For now, return a placeholder as in the original code's commented section
-        return np.zeros((DRONE_IMG_HEIGHT, DRONE_IMG_WIDTH, 3), dtype=np.uint8)
+        pos, orn = self.client.getBasePositionAndOrientation(self.drone_id)
+        rot_mat = self.client.getMatrixFromQuaternion(orn)
+        # Look down from the drone
+        camera_eye = np.array(pos)
+        # Assuming Z is UP, the drone looks down (-Z in link frame)
+        # We transform [0, 0, -1] from link frame to world frame
+        look_dir = np.array([rot_mat[2], rot_mat[5], rot_mat[8]]) * -1.0
+        camera_target = camera_eye + look_dir
+        # Up vector is along drone's X-axis
+        up_vector = np.array([rot_mat[0], rot_mat[3], rot_mat[6]])
+        
+        view_matrix = self.client.computeViewMatrix(
+            cameraEyePosition=camera_eye.tolist(),
+            cameraTargetPosition=camera_target.tolist(),
+            cameraUpVector=up_vector.tolist(),
+        )
+        proj_matrix = self.client.computeProjectionMatrixFOV(
+            fov=90, aspect=1.0, nearVal=0.01, farVal=10.0
+        )
+        (_, _, rgb, _, _) = self.client.getCameraImage(
+            width=DRONE_IMG_WIDTH,
+            height=DRONE_IMG_HEIGHT,
+            viewMatrix=view_matrix,
+            projectionMatrix=proj_matrix,
+            renderer=p.ER_TINY_RENDERER
+        )
+        rgb_array = np.array(rgb, dtype=np.uint8).reshape((DRONE_IMG_HEIGHT, DRONE_IMG_WIDTH, 4))
+        return rgb_array[:, :, :3]
 
     def _get_cumulative_shift(self) -> list:
         drone_pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)

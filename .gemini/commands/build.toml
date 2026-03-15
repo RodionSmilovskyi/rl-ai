@@ -1,0 +1,17 @@
+description = "Compiles project dependencies in the strictly required order."
+
+prompt = """
+Execute the project build pipeline in the following exact order. 
+Do not proceed to the next step if a shell command fails.
+
+1. Compile dev dependencies:
+!{ pip-compile --extra dev -o dev-requirements.txt pyproject.toml }
+
+2. Compile dependencies:
+!{ pip-compile --constraint dev-requirements.txt  -o src/requirements.txt pyproject.toml }
+
+3. Sync all dependencies:
+!{ pip-sync dev-requirements.txt }
+
+Once all steps are complete, summarize the output and report any warnings.
+"""

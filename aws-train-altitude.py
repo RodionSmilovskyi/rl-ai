@@ -11,13 +11,12 @@ ROLE = "arn:aws:iam::905418352696:role/SageMakerFullAccess"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prefix", type=str, default="rl-training-run")
+    parser.add_argument("--prefix", type=str, default="sac-altitude-run")
     parser.add_argument("--job-name", type=str, default=None)
-    parser.add_argument("--total-timesteps", type=int, default=100000)
+    parser.add_argument("--total-timesteps", type=int, default=200000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--env-id", type=str, default="Pendulum-v1")
     args = parser.parse_args()
 
     # AWS Session initialization (mimicking object-detection)
@@ -38,7 +37,7 @@ if __name__ == "__main__":
         instance_count=1,
         instance_type="ml.c5.4xlarge", # Optimized for multi-CPU ParallelSAC
         source_dir="src",
-        entry_point="train_sac.py",
+        entry_point="train_altitude_curriculum.py",
         output_path=output_path,
         checkpoint_s3_uri=checkpoint_path,
         tensorboard_output_config=TensorBoardOutputConfig(
@@ -49,12 +48,13 @@ if __name__ == "__main__":
             "seed": args.seed,
             "lr": args.lr,
             "batch-size": args.batch_size,
-            "env-id": args.env_id,
             "prefix": args.prefix
         },
     )
 
-    # Note: No explicit training data upload required for Pendulum, as it's built into Gymnasium.
+    # Note: No explicit training data upload required as assets are in source_dir/assets (handled by SageMaker)
+    # Wait, source_dir points to "src", but assets are in WORKDIR/assets. 
+    # I should probably move assets to src or adjust source_dir.
     estimator.fit(wait=False)
 
-    print(f"SageMaker Training Job submitted: {args.job_name or args.prefix}")
+    print(f"SageMaker Altitude Training Job submitted: {args.job_name or args.prefix}")

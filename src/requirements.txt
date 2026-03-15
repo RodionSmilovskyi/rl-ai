@@ -123,9 +123,14 @@ numpy==1.26.4
     #   matplotlib
     #   moviepy
     #   mujoco
+    #   onnx
     #   pandas
     #   stable-baselines3
     #   tensorboard
+onnx==1.16.2
+    # via
+    #   -c dev-requirements.txt
+    #   rl-ai (pyproject.toml)
 packaging==24.2
     # via
     #   -c dev-requirements.txt
@@ -150,6 +155,7 @@ proglog==0.1.12
 protobuf==5.29.6
     # via
     #   -c dev-requirements.txt
+    #   onnx
     #   tensorboard
 psutil==7.2.2
     # via

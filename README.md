@@ -34,5 +34,5 @@ python aws-train.py
 
 ## Sync dependencies
 1. Compile dev dependencies `pip-compile --extra dev -o dev-requirements.txt pyproject.toml `
-2. Compile general dependencies `pip-compile --constrain dev-requirements.txt  -o src/requirements.txt pyproject.toml`
+2. Compile general dependencies `pip-compile --constraint dev-requirements.txt  -o src/requirements.txt pyproject.toml`
 3. Sync dependencies `pip-sync src/requirements.txt dev-requirements.txt`

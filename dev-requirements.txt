@@ -146,12 +146,15 @@ numpy==1.26.4
     #   matplotlib
     #   moviepy
     #   mujoco
+    #   onnx
     #   pandas
     #   sagemaker
     #   stable-baselines3
     #   tensorboard
 omegaconf==2.3.0
     # via sagemaker
+onnx==1.16.2
+    # via rl-ai (pyproject.toml)
 packaging==24.2
     # via
     #   gymnasium
@@ -182,6 +185,7 @@ proglog==0.1.12
     # via moviepy
 protobuf==5.29.6
     # via
+    #   onnx
     #   sagemaker
     #   tensorboard
 psutil==7.2.2

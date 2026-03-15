@@ -34,4 +34,4 @@ FRAME_NUMBER = 500
 
 # Paths
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-ASSETS_DIRECTORY = os.path.normpath(os.path.join(WORKING_DIRECTORY, "../assets"))
+ASSETS_DIRECTORY = os.path.normpath(os.path.join(WORKING_DIRECTORY, "assets"))
