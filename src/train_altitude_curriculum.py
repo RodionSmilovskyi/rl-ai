@@ -3,7 +3,7 @@ import os
 import sys
 import argparse
 import random
-from typing import Optional
+from typing import Any, Optional
 import numpy as np
 import torch as th
 from torch.utils.tensorboard import SummaryWriter
@@ -11,12 +11,15 @@ from torch.utils.tensorboard import SummaryWriter
 import gymnasium as gym
 from stable_baselines3 import SAC
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, VecMonitor
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, StopTrainingOnRewardThreshold, CallbackList
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.policies import BasePolicy
 from stable_baselines3.common.monitor import Monitor
 from common import ensure_directory
 from drone_env import DroneEnv
 from altitude_curriculum_wrapper import AltitudeCurriculumWrapper
+from settings import SUB_EPISODE_LIMIT
+
+from curriculum.altitude_callback import AltitudeCurriculumCallback
 
 class OnnxablePolicy(th.nn.Module):
     def __init__(self, actor: th.nn.Module):
@@ -32,32 +35,42 @@ class OnnxablePolicy(th.nn.Module):
 
 class OnnxExportCallback(BaseCallback):
     """
-    Callback for exporting the model to ONNX format when a new best model is found.
+    Callback for exporting the model to ONNX format.
+    Can be triggered by other callbacks (like AltitudeCurriculumCallback).
     """
-    def __init__(self, save_path: str, verbose: int = 0):
+    def __init__(self, model_dir: str, default_filename: str = "best_model.onnx", verbose: int = 0):
         super(OnnxExportCallback, self).__init__(verbose)
-        self.save_path = save_path
+        self.model_dir = model_dir
+        self.default_filename = default_filename
 
-    def _on_step(self) -> bool:
+    def trigger_export(self, filename: Optional[str] = None, model: Optional[Any] = None):
         """
-        This method is called by the parent callback (EvalCallback) when a new best model is found.
+        Exports the current model to ONNX.
         """
+        export_model = model if model is not None else self.model
+        if export_model is None:
+            if self.verbose > 0:
+                print("[OnnxExport] Error: No model provided for export.")
+            return
+
+        fname = filename if filename else self.default_filename
+        save_path = os.path.join(self.model_dir, fname)
+        
         if self.verbose > 0:
-            print(f"Exporting new best model to ONNX: {self.save_path}")
+            print(f"Exporting model to ONNX: {save_path}")
         
         # Wrap the policy for ONNX export
-        # model.policy.actor is the network we want for inference
-        onnxable_model = OnnxablePolicy(self.model.policy.actor)
+        onnxable_model = OnnxablePolicy(export_model.policy.actor)
         
         # Define dummy input
-        observation_size = self.model.observation_space.shape
+        observation_size = export_model.observation_space.shape
         dummy_input = th.randn(1, *observation_size)
         
         # Export to ONNX
         th.onnx.export(
             onnxable_model,
             dummy_input,
-            self.save_path,
+            save_path,
             opset_version=15,
             input_names=["input"],
             output_names=["output"],
@@ -66,6 +79,12 @@ class OnnxExportCallback(BaseCallback):
                 "output": {0: "batch_size"}
             }
         )
+
+    def _on_step(self) -> bool:
+        """
+        Called when a new best model is found (if used as callback_on_new_best).
+        """
+        self.trigger_export()
         return True
 
 def make_env(rank: int, seed: int = 0, goal_alt: Optional[float] = None, render_mode: Optional[str] = "rgb_array"):
@@ -87,7 +106,7 @@ def train(params):
     
     # Evaluation environment
     # Each evaluation episode record video
-    eval_video_dir = os.path.join(params["output_dir"], "eval_videos")
+    eval_video_dir = os.path.join(params["output_dir"], "data", "eval_videos")
     ensure_directory(eval_video_dir)
     
     # We use a single environment for evaluation to make video recording easier
@@ -105,27 +124,19 @@ def train(params):
     )
     
     # Callback for ONNX export on new best
-    onnx_path = os.path.join(params["model_dir"], "best_model.onnx")
-    onnx_callback = OnnxExportCallback(onnx_path, verbose=1)
+    onnx_callback = OnnxExportCallback(model_dir=params["model_dir"], verbose=1)
     
-    # Callback to stop training when reward threshold is reached
-    # The user wants to train until avg evaluation return reaches 1.0
-    stop_callback = StopTrainingOnRewardThreshold(reward_threshold=0.1, verbose=1)
-    
-    # Combine callbacks to be executed when a new best model is found
-    callback_on_best = CallbackList([onnx_callback, stop_callback])
-    
-    eval_callback = EvalCallback(
-        eval_env,
-        best_model_save_path=params["model_dir"],
-        log_path=params["output_dir"],
+    # Curriculum Callback
+    # This callback manages the dynamic altitude curriculum and stops training when finished
+    curriculum_callback = AltitudeCurriculumCallback(
+        eval_env=eval_env,
+        success_threshold=0.6,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=5,
-        deterministic=True,
-        render=False,
-        callback_on_new_best=callback_on_best
+        verbose=1,
+        onnx_export_callback=onnx_callback
     )
-
+    
     model = SAC(
         "MlpPolicy",
         env,
@@ -139,7 +150,7 @@ def train(params):
     print(f"Starting training for {params['total_timesteps']} timesteps...")
     model.learn(
         total_timesteps=params["total_timesteps"],
-        callback=[eval_callback]
+        callback=[curriculum_callback]
     )
     print("Training complete.")
 
@@ -150,32 +161,31 @@ def train(params):
     env.close()
 
     # Final video recording
-    # print("Recording final evaluation video...")
-    # final_video_dir = os.path.join(params["output_dir"], "final_video")
-    # ensure_directory(final_video_dir)
+    print("Recording final evaluation video...")
+    final_video_dir = os.path.join(params["output_dir"], "data", "final_video")
+    ensure_directory(final_video_dir)
     
-    # final_video_env = SubprocVecEnv([make_env(0, params["seed"] + 2000)])
-    # final_video_env = VecMonitor(final_video_env)
-    # final_video_env = VecVideoRecorder(
-    #     final_video_env, 
-    #     final_video_dir, 
-    #     record_video_trigger=lambda x: x == 0, 
-    #     video_length=1000,
-    #     name_prefix="final_eval_altitude"
-    # )
+    final_video_env = SubprocVecEnv([make_env(0, params["seed"] + 2000)])
+    final_video_env = VecMonitor(final_video_env)
+    final_video_env = VecVideoRecorder(
+        final_video_env, 
+        final_video_dir, 
+        record_video_trigger=lambda x: True, 
+        video_length=200,
+        name_prefix="final_eval_altitude"
+    )
     
-    # obs = final_video_env.reset()
-    # for _ in range(1000):
-    #     action, _states = model.predict(obs, deterministic=True)
-    #     obs, reward, done, info = final_video_env.step(action)
-    # final_video_env.close()
-    
-    # display.stop()
+    obs = final_video_env.reset()
+    for _ in range(SUB_EPISODE_LIMIT):
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, done, info = final_video_env.step(action)
+        
+    final_video_env.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefix", type=str, default="sac-altitude")
-    parser.add_argument("--total-timesteps", type=int, default=1000000)
+    parser.add_argument("--total-timesteps", type=int, default=100000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -185,10 +195,10 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    sm_output_dir = os.environ.get("SM_OUTPUT_DIR", "output")
-    sm_model_dir = os.environ.get("SM_MODEL_DIR", "checkpoints/sac-altitude")
-    checkpoint_dir = os.environ.get("CHECKPOINT_DIR", "checkpoints/sac-altitude")
-    tensorboard_dir = os.environ.get("TENSORBOARD_DIR", "output/tensorboard")
+    sm_output_dir = os.environ.get("SM_OUTPUT_DIR", "/opt/ml/output")
+    sm_model_dir = os.environ.get("SM_MODEL_DIR", "/opt/ml/model")
+    checkpoint_dir = os.environ.get("CHECKPOINT_DIR", "/opt/ml/checkpoints")
+    tensorboard_dir = os.environ.get("TENSORBOARD_DIR", "/opt/ml/output/tensorboard")
 
     for d in [sm_output_dir, sm_model_dir, checkpoint_dir, tensorboard_dir]:
         ensure_directory(d)

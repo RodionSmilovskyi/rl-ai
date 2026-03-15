@@ -43,6 +43,8 @@ cloudpickle==3.1.2
     #   gymnasium
     #   sagemaker
     #   stable-baselines3
+coloredlogs==15.0.1
+    # via onnxruntime
 contourpy==1.3.3
     # via matplotlib
 cycler==0.12.1
@@ -63,6 +65,8 @@ fastapi==0.135.1
     # via sagemaker
 filelock==3.25.2
     # via torch
+flatbuffers==25.12.19
+    # via onnxruntime
 fonttools==4.62.0
     # via matplotlib
 fsspec==2026.2.0
@@ -81,6 +85,8 @@ gymnasium==1.2.3
     #   stable-baselines3
 h11==0.16.0
     # via uvicorn
+humanfriendly==10.0
+    # via coloredlogs
 idna==3.11
     # via
     #   anyio
@@ -147,6 +153,7 @@ numpy==1.26.4
     #   moviepy
     #   mujoco
     #   onnx
+    #   onnxruntime
     #   pandas
     #   sagemaker
     #   stable-baselines3
@@ -155,10 +162,13 @@ omegaconf==2.3.0
     # via sagemaker
 onnx==1.16.2
     # via rl-ai (pyproject.toml)
+onnxruntime==1.19.2
+    # via rl-ai (pyproject.toml)
 packaging==24.2
     # via
     #   gymnasium
     #   matplotlib
+    #   onnxruntime
     #   sagemaker
     #   tensorboard
 pandas==3.0.1
@@ -186,6 +196,7 @@ proglog==0.1.12
 protobuf==5.29.6
     # via
     #   onnx
+    #   onnxruntime
     #   sagemaker
     #   tensorboard
 psutil==7.2.2
@@ -254,7 +265,9 @@ stable-baselines3==2.7.1
 starlette==0.52.1
     # via fastapi
 sympy==1.13.1
-    # via torch
+    # via
+    #   onnxruntime
+    #   torch
 tblib==3.2.2
     # via sagemaker
 tensorboard==2.20.0

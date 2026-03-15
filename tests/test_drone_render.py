@@ -1,5 +1,11 @@
+import os
+import sys
 import gymnasium as gym
 import numpy as np
+
+# Add src to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
 from drone_env import DroneEnv
 from drone_wrappers import DroneHRLWrapper
 from settings import SUB_EPISODE_LIMIT
@@ -10,11 +16,15 @@ def main():
     
     # Wrap with HRL wrapper
     # Uses defaults from settings.py (K_STEPS, SUB_EPISODE_LIMIT, etc.)
-    env = DroneHRLWrapper(base_env)
-    
     goal_alt = 0.5
-    start_alt = 0.5
-    obs, info = env.reset(options={"goal_alt": goal_alt, "start_alt": start_alt})
+    start_alt = 0.1
+    env = DroneHRLWrapper(base_env)
+    env.set_next_episode_params(        
+        goal_alt=goal_alt, 
+        locked_axes=['roll', 'pitch', 'yaw'], 
+        initial_pos=[0.5, 0.5, start_alt]
+    )
+    obs, info = env.reset()
     print(f"Environment reset successful. Goal Altitude: {goal_alt}, Start Altitude: {start_alt}")
     print(f"Initial Observation: {obs}")
     

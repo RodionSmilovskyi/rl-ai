@@ -34,14 +34,7 @@ class DroneEnv(gym.Env):
 
         self.plane_id = None
         self.drone_id = None
-        self.target_id = None
         self.step_number = 0
-
-        self.world_space = gym.spaces.Box(
-            low=np.array([-20, -20, 0]),
-            high=np.array([20, 20, MAX_ALTITUDE]),
-            dtype=np.float32,
-        )
 
         self.observation_space = gym.spaces.Dict(
             {
@@ -75,7 +68,6 @@ class DroneEnv(gym.Env):
         self.mass = 0
         self.max_rpm = 0
         self.min_rpm = 0
-        self.target_pos = np.zeros(3)
 
         # PyBullet Client
         self.client = bc.BulletClient(
@@ -99,35 +91,8 @@ class DroneEnv(gym.Env):
         self.plane_id = self.client.loadURDF("plane.urdf")
 
         # Drone initialization parameters
-        initial_pos = options.get("initial_pos", [MIN_VAL, MIN_VAL, START_ALTITUDE])
+        initial_pos = options.get("initial_pos", [MIN_VAL, MIN_VAL, START_ALTITUDE]) if options else [MIN_VAL, MIN_VAL, START_ALTITUDE]
         self.initial_pos_np = np.array(initial_pos)
-
-        # Sample or get target position
-        if options and "target_pos" in options:
-            target_position = np.array(options["target_pos"])
-        else:
-            # Ensure target and drone do not overlap (at least 0.5m away)
-            while True:
-                target_position = self.world_space.sample()
-                # Ensure it's not too close to the drone's initial position
-                if np.linalg.norm(target_position - self.initial_pos_np) >= 0.5:
-                    break
-
-        # Target initialization
-        collision_shape_id = self.client.createCollisionShape(
-            shapeType=self.client.GEOM_MESH,
-            fileName=os.path.join(ASSETS_DIRECTORY, "a_cube.obj"),
-        )
-        visual_shape_id = self.client.createVisualShape(
-            shapeType=self.client.GEOM_MESH,
-            fileName=os.path.join(ASSETS_DIRECTORY, "a_cube.obj"),
-        )
-        self.target_id = self.client.createMultiBody(
-            baseCollisionShapeIndex=collision_shape_id,
-            baseVisualShapeIndex=visual_shape_id,
-            basePosition=target_position.tolist(),
-        )
-        self.target_pos = target_position
 
         # Drone initialization
         self.drone_id = self.client.loadURDF(
