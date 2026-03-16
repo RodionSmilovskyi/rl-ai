@@ -1,27 +1,22 @@
 import os
 from typing import Any, Optional
 import torch as th
+import gymnasium as gym
 from stable_baselines3.common.callbacks import BaseCallback
 
 class OnnxablePolicy(th.nn.Module):
     """
     Wrapper for a policy to make it exportable to ONNX/PyTorch.
-    It performs rounding on actions to mimic environment discretization.
+    It performs action unscaling and rounding.
     """
-    def __init__(self, actor: th.nn.Module, action_space=None, decimals=2):
+    def __init__(self, actor: th.nn.Module, action_space: gym.spaces.Box, decimals=2):
         super().__init__()
         self.actor = actor
         self.decimals = decimals
-        # action_space might be used for clipping/scaling if added later
 
     def forward(self, observation: th.Tensor) -> th.Tensor:
-        # NOTE: Post-processing (clipping/unscaling actions) is NOT included by default.
-        # SAC actor output is usually squash by tanh.
-        # SB3 SAC actor returns (action, log_std) during forward or just action if deterministic.
-        # For inference, we use deterministic=True.
         action = self.actor(observation, deterministic=True)
-        rounded_action = th.round(action, decimals=self.decimals)
-        
+        rounded_action = th.round(action, decimals=self.decimals)       
         return rounded_action
 
 class ExportCallback(BaseCallback):

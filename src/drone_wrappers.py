@@ -55,7 +55,9 @@ class FlightController:
         # state_goal: [altitude, roll, pitch, yaw_rate]
         current_alt_norm, current_roll_norm, current_pitch_norm, current_yaw_rate_norm = state_goal
         # high_level_action: [desired_alt, desired_roll, desired_pitch, desired_yaw_rate]
-        desired_alt_norm, desired_roll_norm, desired_pitch_norm, desired_yaw_rate_norm = high_level_action
+        # action[0] is in [-1, 1], remap it to [0, 1] for altitude setpoint
+        desired_alt_norm = (high_level_action[0] + 1) / 2
+        desired_roll_norm, desired_pitch_norm, desired_yaw_rate_norm = high_level_action[1:]
         
         self.throttle_pid.setpoint = desired_alt_norm
         throttle_pid_out = self.throttle_pid.compute(current_alt_norm, dt)
@@ -103,7 +105,7 @@ class DroneHRLWrapper(gym.Wrapper):
         )
         
         self.action_space = gym.spaces.Box(
-            low=np.array([0, -1, -1, -1], dtype=np.float32),
+            low=np.array([-1, -1, -1, -1], dtype=np.float32),
             high=np.array([1, 1, 1, 1], dtype=np.float32),
             dtype=np.float32
         )
@@ -155,7 +157,7 @@ class DroneHRLWrapper(gym.Wrapper):
         goal_alt = state_goal[5]
         alt_error = abs(current_alt - goal_alt)
         drift_error = np.sqrt(state_goal[1]**2 + state_goal[2]**2)
-        return 5.0 if alt_error < 0.05 and drift_error < 0.15 else 0.0
+        return 5.0 if alt_error < 0.1 and drift_error < 0.15 else 0.0
 
     def is_crashed(self, start_state: np.ndarray, end_state: np.ndarray) -> bool:
         current_alt = end_state[0]
@@ -266,7 +268,6 @@ class DroneHRLWrapper(gym.Wrapper):
         
         self.sub_episode_count += 1
         self.last_obs = self._get_obs(self.last_full_obs)
-        
         is_success = False
         if not crashed:
             if self.is_crashed(self.episode_start_state, self.last_obs):

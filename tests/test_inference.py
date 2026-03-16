@@ -66,7 +66,12 @@ def main():
     render_mode = "human" if args.render else None
     base_env = DroneEnv(render_mode=render_mode)
     env = DroneHRLWrapper(base_env, k_steps=20, sub_episode_limit=args.max_steps)
-
+    env.set_next_episode_params(
+        goal_alt=args.goal_alt, 
+        locked_axes=args.locked_axes, 
+        initial_pos=[0, 0, 0.05]
+    )
+    
     for ep in range(args.episodes):
         print(f"Starting Episode {ep + 1} with Goal Altitude: {args.goal_alt}, Locked Axes: {args.locked_axes}")
         
@@ -93,7 +98,7 @@ def main():
             # Print current state
             alt = obs[0]
             dist = abs(alt - args.goal_alt)
-            print(f"Step {step}: Alt: {alt:.3f}, Goal: {args.goal_alt:.1f}, Dist: {dist:.3f}, Reward: {reward:.3f}")
+            print(f"Step {step}: Alt: {alt:.3f}, Goal: {args.goal_alt:.1f}, Dist: {dist:.3f}, Reward: {reward:.3f}, Action {action}")
             
             if args.render:
                 env.render()

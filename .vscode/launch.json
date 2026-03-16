@@ -2,7 +2,65 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug local train PPO",
+            "name": "Debug local train Altitude PPO",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train_altitude_curriculum_ppo.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix",
+                "ppo-altitude-local",
+                "--total-timesteps",
+                "200000",
+                "--seed",
+                "0",
+                "--lr",
+                "0.0003",
+                "--batch-size",
+                "64"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        {
+            "name": "Debug aws train Altitude PPO",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/aws-train-altitude-ppo.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug local train Altitude SAC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train_altitude_curriculum.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix",
+                "sac-altitude-local",
+                "--total-timesteps",
+                "200000",
+                "--seed",
+                "0",
+                "--lr",
+                "0.0003",
+                "--batch-size",
+                "256"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        {
+            "name": "Debug aws train Altitude SAC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/aws-train-altitude.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug local train PPO (Pendulum)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/tests/test_train_ppo.py",
@@ -26,7 +84,7 @@
             }
         },
         {
-            "name": "Debug aws train PPO",
+            "name": "Debug aws train PPO (Pendulum)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/aws-train-ppo.py",
@@ -47,7 +105,7 @@
             ]
         },
         {
-            "name": "Debug local train SAC",
+            "name": "Debug local train SAC (Pendulum)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/tests/test_train_sac.py",
@@ -71,7 +129,7 @@
             }
         },
         {
-            "name": "Debug aws train SAC",
+            "name": "Debug aws train SAC (Pendulum)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/aws-train-sac.py",
@@ -90,35 +148,6 @@
                 "--env-id",
                 "Pendulum-v1"
             ]
-        },
-        {
-            "name": "Debug local train Altitude Curriculum",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/train_altitude_curriculum.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "sac-altitude-local",
-                "--total-timesteps",
-                "100000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "256"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            }
-        },
-        {
-            "name": "Debug aws train Altitude Curriculum",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/aws-train-altitude.py",
-            "console": "integratedTerminal"
         },
         {
             "name": "Test: HRL Wrapper Params",
@@ -150,7 +179,7 @@
                 "--model-path",
                 "${workspaceFolder}/output/model/model_phase_1_final.onnx",
                 "--goal-alt",
-                "0.47",
+                "0.9",
                 "--render",
                 "--locked-axes",
                 "roll",

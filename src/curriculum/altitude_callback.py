@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from stable_baselines3.common.callbacks import BaseCallback
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 class AltitudeCurriculumCallback(BaseCallback):
     """
@@ -29,7 +29,7 @@ class AltitudeCurriculumCallback(BaseCallback):
         self.export_callback = export_callback
         
         self.current_phase = 1
-        self.max_phase = 4
+        self.max_phase = 1
         
         # Initial parameters for Phase 1
         self.locked_axes = ['roll', 'pitch', 'yaw']
@@ -40,17 +40,33 @@ class AltitudeCurriculumCallback(BaseCallback):
         Called when training starts. Set initial environment parameters and goals.
         """
         self._apply_phase_params()
-        # Set initial random goals for all training environments
+        # Set initial random goals and start positions for all training environments
         for i in range(self.training_env.num_envs):
+            start_alt, goal_alt = self._get_random_start_and_goal()
             self.training_env.env_method('set_next_episode_params', 
-                                         goal_alt=self._get_random_goal(), 
+                                         goal_alt=goal_alt,
+                                         initial_pos=[0.0, 0.0, start_alt],
                                          indices=i)
 
-    def _get_random_goal(self) -> float:
+    def _get_random_start_and_goal(self) -> Tuple[float, float]:
         """
-        Generate a random normalized goal altitude.
+        Generate random start and goal altitudes with a minimum gap of 0.15.
+        If they are closer than 0.15, push start altitude down.
         """
-        return float(np.random.uniform(0.1, 0.9))
+        start_alt = float(np.random.uniform(0.05, 0.95))
+        # goal_alt = float(np.random.uniform(0.1, 0.9))
+        skewed_random = np.random.beta(2, 1) 
+        goal_alt = round(0.1 + (skewed_random * 0.8), 3)
+        
+        if abs(start_alt - goal_alt) < 0.15:
+            # Push start altitude down
+            start_alt = goal_alt - 0.15
+            # Ensure it doesn't go below minimum start altitude
+            if start_alt < 0.05:
+                # If pushing down is not possible, push it up
+                start_alt = goal_alt + 0.15
+                
+        return start_alt, goal_alt
 
     def _apply_phase_params(self) -> None:
         """
@@ -59,12 +75,15 @@ class AltitudeCurriculumCallback(BaseCallback):
         if self.verbose > 0:
             print(f"\n[Curriculum] >>> Entering Phase {self.current_phase} <<<")
             print(f"[Curriculum] Locked axes: {self.locked_axes}")
-            print(f"[Curriculum] Initial pos: {self.initial_pos}")
+            print(f"[Curriculum] Fixed initial pos (Eval): {self.initial_pos}")
 
-        # Update training environments
+        # Update name prefix for video recording if VecVideoRecorder is used
+        if hasattr(self.eval_env, 'name_prefix'):
+            self.eval_env.name_prefix = f"eval_altitude_phase_{self.current_phase}"
+
+        # Update training environments - Only locked_axes, randomization handled in _on_step
         self.training_env.env_method('set_next_episode_params', 
-                                     locked_axes=self.locked_axes.copy(), 
-                                     initial_pos=self.initial_pos.copy())
+                                     locked_axes=self.locked_axes.copy())
         
         # Update evaluation environment
         self.eval_env.env_method('set_next_episode_params', 
@@ -76,13 +95,15 @@ class AltitudeCurriculumCallback(BaseCallback):
         Check if it's time to evaluate and potentially advance the curriculum.
         Also handle per-episode goal randomization for training environments.
         """
-        # Randomize goal for the NEXT reset for any env that just finished an episode
+        # Randomize goal and start pos for the NEXT reset for any env that just finished an episode
         dones = self.locals.get("dones")
         if dones is not None:
             for i, done in enumerate(dones):
                 if done:
+                    start_alt, goal_alt = self._get_random_start_and_goal()
                     self.training_env.env_method('set_next_episode_params', 
-                                                 goal_alt=self._get_random_goal(), 
+                                                 goal_alt=goal_alt,
+                                                 initial_pos=[0.0, 0.0, start_alt],
                                                  indices=i)
 
         if self.n_calls % self.eval_freq == 0:
@@ -135,13 +156,15 @@ class AltitudeCurriculumCallback(BaseCallback):
         Run evaluation episodes and calculate the success rate.
         """
         successes = []
-        for _ in range(self.n_eval_episodes):
+        eval_goals = np.linspace(0.1, 0.9, self.n_eval_episodes)
+        
+        for goal_alt in eval_goals:
             # Set a random goal and ensure current phase parameters are applied
-            random_goal = self._get_random_goal()
+            # Use fixed initial position [0.0, 0.0, 0.05] for evaluation
             self.eval_env.env_method('set_next_episode_params', 
-                                     goal_alt=random_goal,
+                                     goal_alt=goal_alt,
                                      locked_axes=self.locked_axes.copy(),
-                                     initial_pos=self.initial_pos.copy())
+                                     initial_pos=[0.0, 0.0, 0.05])
             
             obs = self.eval_env.reset()
             done = False

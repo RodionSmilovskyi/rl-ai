@@ -6,14 +6,10 @@ import random
 from typing import Any, Optional
 import numpy as np
 import torch as th
-from torch.utils.tensorboard import SummaryWriter
 
 import gymnasium as gym
-from stable_baselines3 import SAC
+from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, VecMonitor
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines3.common.policies import BasePolicy
-from stable_baselines3.common.monitor import Monitor
 from common import ensure_directory
 from curriculum.altitude_callback import AltitudeCurriculumCallback
 from export_utils import OnnxablePolicy, ExportCallback
@@ -23,7 +19,8 @@ def train(params):
     print(f"Initialized SummaryWriter at {params['tensorboard_dir']}")
     num_cpu = os.cpu_count() or 1
     print(f"Dynamically scaling training to {num_cpu} CPUs using SubprocVecEnv.")
-    # Vectorized environments for Parallel SAC
+    
+    # Vectorized environments for Parallel PPO
     env = SubprocVecEnv([make_drone_env(i, params["seed"]) for i in range(num_cpu)])
     env = VecMonitor(env)
 
@@ -37,34 +34,41 @@ def train(params):
     eval_env = VecMonitor(eval_env)
     
     # Wrap eval_env in VecVideoRecorder
-    # record_video_trigger=lambda x: True means it records every episode in this env
     eval_env = VecVideoRecorder(
         eval_env, 
         eval_video_dir, 
-        record_video_trigger=lambda x: True, 
+        record_video_trigger=lambda x: x == 0, 
         video_length=200,
-        name_prefix="eval_altitude"
+        name_prefix="eval_altitude_ppo"
     )
     
     # Callback for ONNX and PyTorch export on new best
     export_callback = ExportCallback(model_dir=params["model_dir"], verbose=1)
     
     # Curriculum Callback
-    # This callback manages the dynamic altitude curriculum and stops training when finished
     curriculum_callback = AltitudeCurriculumCallback(
         eval_env=eval_env,
-        success_threshold=0.8,
+        success_threshold=0.6,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=10,
         verbose=1,
         export_callback=export_callback
     )
     
-    model = SAC(
+    # PPO Hyperparameters
+    model = PPO(
         "MlpPolicy",
         env,
         learning_rate=params["lr"],
+        n_steps=2048,
         batch_size=params["batch_size"],
+        n_epochs=10,
+        gamma=0.99,
+        gae_lambda=0.95,
+        clip_range=0.2,
+        ent_coef=0.0,
+        vf_coef=0.5,
+        max_grad_norm=0.5,
         seed=params["seed"],
         verbose=1,
         tensorboard_log=params["tensorboard_dir"],
@@ -83,11 +87,11 @@ def train(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prefix", type=str, default="sac-altitude")
+    parser.add_argument("--prefix", type=str, default="ppo-altitude")
     parser.add_argument("--total-timesteps", type=int, default=100000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--batch-size", type=int, default=64) # PPO often uses smaller batches
     args = parser.parse_args()
 
     th.manual_seed(args.seed)
