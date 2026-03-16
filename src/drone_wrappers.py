@@ -314,3 +314,12 @@ class DroneHRLWrapper(gym.Wrapper):
         draw.text((10, 50), f"Current Pos: {[round(c, 2) for c in pos]}", fill=(255, 0, 0), font=font)
         
         return np.array(img)
+
+class RoundActionWrapper(gym.ActionWrapper):
+    def __init__(self, env, decimals=3):
+        super().__init__(env)
+        self.decimals = decimals
+
+    def action(self, action: np.ndarray) -> np.ndarray:
+        # Rounds the float32 array to the specified decimal places
+        return np.round(action, decimals=self.decimals)

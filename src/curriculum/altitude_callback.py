@@ -19,14 +19,14 @@ class AltitudeCurriculumCallback(BaseCallback):
         eval_freq: int = 2000,
         n_eval_episodes: int = 10,
         verbose: int = 1,
-        onnx_export_callback: Optional[Any] = None,
+        export_callback: Optional[Any] = None,
     ):
         super().__init__(verbose)
         self.eval_env = eval_env
         self.success_threshold = success_threshold
         self.eval_freq = eval_freq
         self.n_eval_episodes = n_eval_episodes
-        self.onnx_export_callback = onnx_export_callback
+        self.export_callback = export_callback
         
         self.current_phase = 1
         self.max_phase = 4
@@ -115,20 +115,20 @@ class AltitudeCurriculumCallback(BaseCallback):
 
     def _export_phase_model(self) -> None:
         """
-        Export the current model to ONNX with phase-specific naming via the OnnxExportCallback.
+        Export the current model to ONNX and PyTorch with phase-specific naming via the ExportCallback.
         """
-        if self.onnx_export_callback is None:
+        if self.export_callback is None:
             if self.verbose > 0:
-                print("[Curriculum] Warning: onnx_export_callback is None, skipping export.")
+                print("[Curriculum] Warning: export_callback is None, skipping export.")
             return
 
         phase_name = f"phase_{self.current_phase}"
         if self.current_phase == self.max_phase:
-            filename = f"model_{phase_name}_final.onnx"
+            filename = f"model_{phase_name}_final"
         else:
-            filename = f"model_{phase_name}.onnx"
+            filename = f"model_{phase_name}"
             
-        self.onnx_export_callback.trigger_export(filename=filename, model=self.model)
+        self.export_callback.trigger_export(filename=filename, model=self.model)
 
     def _evaluate_success_rate(self) -> float:
         """

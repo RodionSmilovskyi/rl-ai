@@ -141,16 +141,16 @@
             }
         },
         {
-            "name": "Test: ONNX Model",
+            "name": "Test: Inference",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/test_onnx_model.py",
+            "program": "${workspaceFolder}/tests/test_inference.py",
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/output/model/model_phase_1.onnx",
+                "${workspaceFolder}/output/model/model_phase_1_final.onnx",
                 "--goal-alt",
-                "0.5",
+                "0.47",
                 "--render",
                 "--locked-axes",
                 "roll",
