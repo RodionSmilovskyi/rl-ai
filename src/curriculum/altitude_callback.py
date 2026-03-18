@@ -18,6 +18,7 @@ class AltitudeCurriculumCallback(BaseCallback):
         success_threshold: float = 0.8,
         eval_freq: int = 2000,
         n_eval_episodes: int = 10,
+        max_phase: int = 4,
         verbose: int = 1,
         export_callback: Optional[Any] = None,
     ):
@@ -26,10 +27,10 @@ class AltitudeCurriculumCallback(BaseCallback):
         self.success_threshold = success_threshold
         self.eval_freq = eval_freq
         self.n_eval_episodes = n_eval_episodes
+        self.max_phase = max_phase
         self.export_callback = export_callback
         
         self.current_phase = 1
-        self.max_phase = 1
         
         # Initial parameters for Phase 1
         self.locked_axes = ['roll', 'pitch', 'yaw']
@@ -136,7 +137,7 @@ class AltitudeCurriculumCallback(BaseCallback):
 
     def _export_phase_model(self) -> None:
         """
-        Export the current model to ONNX and PyTorch with phase-specific naming via the ExportCallback.
+        Export the current model to ONNX and PyTorch with phase-specific naming via the export callback.
         """
         if self.export_callback is None:
             if self.verbose > 0:

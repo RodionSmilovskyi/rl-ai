@@ -165,7 +165,7 @@ class DroneHRLWrapper(gym.Wrapper):
         start_goal_distance = abs(start_state[0] - start_state[5])
         alt_error = abs(current_alt - goal_alt)
         drift_error = np.sqrt(end_state[1]**2 + end_state[2]**2)
-        return drift_error >= 0.7 or alt_error > start_goal_distance + 0.06
+        return drift_error >= 0.5 or alt_error > start_goal_distance + 0.06
 
     def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         if options is None:

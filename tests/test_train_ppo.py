@@ -15,6 +15,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
 from common import make_env, ensure_directory
+from export_utils import PPOExportCallback
 
 
 def train(params):
@@ -28,6 +29,9 @@ def train(params):
     env = SubprocVecEnv([make_env(env_id, params["seed"], i) for i in range(num_cpu)])
     eval_env = gym.make(env_id, render_mode="rgb_array")
     
+    # Export callback for PPO
+    export_callback = PPOExportCallback(model_dir=params["model_dir"], verbose=1)
+
     # Replicating evaluation frequency from object-detection
     eval_callback = EvalCallback(
         eval_env,
@@ -36,6 +40,7 @@ def train(params):
         eval_freq=max(2000 // num_cpu, 1),
         deterministic=True,
         render=False,
+        callback_on_new_best=export_callback
     )
 
     # Standard PPO instantiation using MlpPolicy for continuous control tasks like Pendulum

@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--max-phase", type=int, default=4)
     args = parser.parse_args()
 
     # AWS Session initialization (mimicking object-detection)
@@ -48,7 +49,8 @@ if __name__ == "__main__":
             "seed": args.seed,
             "lr": args.lr,
             "batch-size": args.batch_size,
-            "prefix": args.prefix
+            "prefix": args.prefix,
+            "max-phase": args.max_phase
         },
     )
 

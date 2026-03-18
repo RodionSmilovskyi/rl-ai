@@ -17,7 +17,9 @@
                 "--lr",
                 "0.0003",
                 "--batch-size",
-                "64"
+                "64",
+                "--max-phase",
+                "1"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
@@ -46,7 +48,9 @@
                 "--lr",
                 "0.0003",
                 "--batch-size",
-                "256"
+                "256",
+                "--max-phase",
+                "1"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
@@ -177,7 +181,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/output/model/model_phase_1_final.onnx",
+                "${workspaceFolder}/output/model/model_phase_1_final_ppo.onnx",
                 "--goal-alt",
                 "0.9",
                 "--render",

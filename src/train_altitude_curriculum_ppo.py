@@ -12,7 +12,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, VecMonitor
 from common import ensure_directory
 from curriculum.altitude_callback import AltitudeCurriculumCallback
-from export_utils import OnnxablePolicy, ExportCallback
+from export_utils import PPOOnnxablePolicy, PPOExportCallback
 from env_utils import make_drone_env
 
 def train(params):
@@ -43,14 +43,15 @@ def train(params):
     )
     
     # Callback for ONNX and PyTorch export on new best
-    export_callback = ExportCallback(model_dir=params["model_dir"], verbose=1)
+    export_callback = PPOExportCallback(model_dir=params["model_dir"], verbose=1)
     
     # Curriculum Callback
     curriculum_callback = AltitudeCurriculumCallback(
         eval_env=eval_env,
-        success_threshold=0.6,
+        success_threshold=0.8,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=10,
+        max_phase=params.get("max_phase", 4),
         verbose=1,
         export_callback=export_callback
     )
@@ -92,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=64) # PPO often uses smaller batches
+    parser.add_argument("--max-phase", type=int, default=4)
     args = parser.parse_args()
 
     th.manual_seed(args.seed)
@@ -116,4 +118,5 @@ if __name__ == "__main__":
         "total_timesteps": args.total_timesteps,
         "lr": args.lr,
         "seed": args.seed,
+        "max_phase": args.max_phase,
     })
