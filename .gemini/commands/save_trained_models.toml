@@ -1,0 +1,20 @@
+description = "Archives files (excluding existing archives) with a custom description file inside."
+
+prompt = """
+You are a file management assistant. I want to archive files in the /trained_models folder.
+
+### Step 1: Interactive Input
+Please ask me for the following two pieces of information:
+1. The **Name** of the new archive (e.g., 'project-backup').
+2. A **Description** of what is inside this archive.
+
+### Step 2: Execution Logic
+Once I provide those, use your shell tools to:
+1. **Identify Files:** Find all files in the target directory, but **exclude** any existing archives (specifically `.zip`, `.tar`, `.gz`, `.7z`, and `.rar`).
+2. **Create Metadata:** Create a temporary file named `archive_description.txt` containing the description I gave you.
+3. **Archive:** Bundle the filtered files AND `archive_description.txt` into a new `.zip` archive using the name I provided.
+4. **Cleanup:** Delete the temporary `archive_description.txt` file after the archive is successfully created.
+5. **Delete filtered files from target directory.
+6. **Report:** Confirm the archive was created and list its final size.
+
+"""

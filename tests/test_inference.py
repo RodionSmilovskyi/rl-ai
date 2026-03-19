@@ -5,6 +5,7 @@ import numpy as np
 import gymnasium as gym
 import torch as th
 
+from debug_utils import InferenceDebugger
 from drone_wrappers import DroneHRLWrapper
 
 # Add src to path
@@ -33,6 +34,9 @@ def main():
     if not is_onnx and not is_torch:
         print(f"Error: Unsupported model format for {args.model_path}. Use .onnx, .pt, or .pth")
         sys.exit(1)
+
+    # Start debugging session to capture outputs
+    debugger = InferenceDebugger(args.model_path, args)
 
     # Initialize model
     if is_onnx:
@@ -82,12 +86,12 @@ def main():
         total_reward = 0
         done = False
         step = 0
-        print(f"Step {step}: Alt: {alt:.3f}, Goal: {args.goal_alt:.1f}, Dist: {dist:.3f}, Reward: 0")
+        print(f"Step {step}: Alt: {alt:.3f}, Goal: {args.goal_alt:.1f}, Dist: {dist:.3f}, Observation: {obs}, Info: {info}, Reward: 0")
         
         while not done and step < args.max_steps:
             # Run inference
             action = predict(obs)
-            
+              
             # Step environment
             obs, reward, terminated, truncated, info = env.step(action)
             total_reward += reward
@@ -98,7 +102,7 @@ def main():
             # Print current state
             alt = obs[0]
             dist = abs(alt - args.goal_alt)
-            print(f"Step {step}: Alt: {alt:.3f}, Goal: {args.goal_alt:.1f}, Dist: {dist:.3f}, Reward: {reward:.3f}, Action {action}")
+            print(f"Step {step}: Alt: {alt:.3f}, Goal: {args.goal_alt:.1f}, Dist: {dist:.3f}, Observation: {obs}, Info: {info}, Reward: {reward:.3f}, Action {action}")
             
             if args.render:
                 env.render()

@@ -61,11 +61,16 @@ class SACExportCallback(BaseCallback):
 
         onnx_path = os.path.join(self.model_dir, f"{base_fname}_sac.onnx")
         torch_path = os.path.join(self.model_dir, f"{base_fname}_sac.pt")
+        zip_path = os.path.join(self.model_dir, f"{base_fname}_sac.zip")
         
         if self.verbose > 0:
             print(f"Exporting SAC model to ONNX: {onnx_path}")
             print(f"Exporting SAC model to PyTorch: {torch_path}")
+            print(f"Saving SAC model to: {zip_path}")
         
+        # Save the whole model
+        export_model.save(zip_path)
+
         # SAC: Wrap the actor policy for export
         onnxable_model = SACOnnxablePolicy(export_model.policy.actor, export_model.action_space)
         
@@ -119,11 +124,16 @@ class PPOExportCallback(BaseCallback):
 
         onnx_path = os.path.join(self.model_dir, f"{base_fname}_ppo.onnx")
         torch_path = os.path.join(self.model_dir, f"{base_fname}_ppo.pt")
+        zip_path = os.path.join(self.model_dir, f"{base_fname}_ppo.zip")
         
         if self.verbose > 0:
             print(f"Exporting PPO model to ONNX: {onnx_path}")
             print(f"Exporting PPO model to PyTorch: {torch_path}")
+            print(f"Saving PPO model to: {zip_path}")
         
+        # Save the whole model
+        export_model.save(zip_path)
+
         # PPO: Wrap the full policy
         onnxable_model = PPOOnnxablePolicy(export_model.policy, export_model.action_space)
         

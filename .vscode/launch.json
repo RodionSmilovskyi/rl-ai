@@ -19,7 +19,7 @@
                 "--batch-size",
                 "64",
                 "--max-phase",
-                "1"
+                "4"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
@@ -30,7 +30,11 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/aws-train-altitude-ppo.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "--job-name",
+                "ppo"
+            ]
         },
         {
             "name": "Debug local train Altitude SAC",
@@ -50,7 +54,7 @@
                 "--batch-size",
                 "256",
                 "--max-phase",
-                "1"
+                "4"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
@@ -61,99 +65,13 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/aws-train-altitude.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Debug local train PPO (Pendulum)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/tests/test_train_ppo.py",
             "console": "integratedTerminal",
             "args": [
-                "--prefix",
-                "ppo-pendulum-local",
-                "--total-timesteps",
-                "400000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "64",
-                "--env-id",
-                "Pendulum-v1"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            }
-        },
-        {
-            "name": "Debug aws train PPO (Pendulum)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/aws-train-ppo.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "ppo-pendulum-aws",
-                "--total-timesteps",
-                "400000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "64",
-                "--env-id",
-                "Pendulum-v1"
+                "--job-name",
+                "sac"
             ]
         },
-        {
-            "name": "Debug local train SAC (Pendulum)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/tests/test_train_sac.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "sac-pendulum-local",
-                "--total-timesteps",
-                "40000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.001",
-                "--batch-size",
-                "256",
-                "--env-id",
-                "Pendulum-v1"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            }
-        },
-        {
-            "name": "Debug aws train SAC (Pendulum)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/aws-train-sac.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "sac-pendulum-aws",
-                "--total-timesteps",
-                "100000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "256",
-                "--env-id",
-                "Pendulum-v1"
-            ]
-        },
-        {
+          {
             "name": "Test: HRL Wrapper Params",
             "type": "debugpy",
             "request": "launch",
@@ -181,14 +99,12 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/output/model/model_phase_1_final_ppo.onnx",
+                "${workspaceFolder}/trained_models/model_phase_4_final_ppo.onnx",
                 "--goal-alt",
                 "0.9",
                 "--render",
-                "--locked-axes",
-                "roll",
-                "pitch",
-                "yaw"
+                "--max-steps",
+                "50"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"

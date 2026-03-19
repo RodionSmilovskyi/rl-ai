@@ -1,7 +1,10 @@
 import numpy as np
 import os
+import torch as th
 from stable_baselines3.common.callbacks import BaseCallback
 from typing import List, Dict, Any, Optional, Tuple
+
+from settings import K_STEPS, PHYSICS_FREQ
 
 class AltitudeCurriculumCallback(BaseCallback):
     """
@@ -132,6 +135,22 @@ class AltitudeCurriculumCallback(BaseCallback):
                 self.current_phase += 1
                 self._update_phase_params()
                 self._apply_phase_params()
+
+                # Reset entropy coefficient and optimizer for SAC
+                if hasattr(self.model, "log_ent_coef"):
+                    # Disable gradient tracking while we force-overwrite the tensor value
+                    if self.verbose > 0:
+                        print(f"[Curriculum] Resetting entropy coefficient and optimizer for Phase {self.current_phase}")
+                        
+                    with th.no_grad():
+                        # Setting log(1.0) = 0.0. This forces the entropy multiplier back to 1.0 (max exploration)
+                        self.model.log_ent_coef.fill_(np.log(0.5)) 
+                    
+                    # CRITICAL: Clear the Adam optimizer's momentum state!
+                    # If we don't do this, the optimizer remembers its past downward velocity 
+                    # and will instantly crush the entropy back to zero on the very next step.
+                    if hasattr(self.model, "ent_coef_optimizer"):
+                        self.model.ent_coef_optimizer.state.clear()
                 
         return True
 
@@ -158,6 +177,7 @@ class AltitudeCurriculumCallback(BaseCallback):
         """
         successes = []
         eval_goals = np.linspace(0.1, 0.9, self.n_eval_episodes)
+        np.random.shuffle(eval_goals)
         
         for goal_alt in eval_goals:
             # Set a random goal and ensure current phase parameters are applied
@@ -170,16 +190,17 @@ class AltitudeCurriculumCallback(BaseCallback):
             obs = self.eval_env.reset()
             done = False
             episode_success = False
+            
             while not done:
                 action, _ = self.model.predict(obs, deterministic=True)
                 # VecEnv.step returns (obs, reward, done, info)
                 # where done is terminated | truncated
                 obs, reward, dones, info = self.eval_env.step(action)
                 done = dones[0]
-                # Check for success in info. Since eval_env is vectorized, info is a list of dicts
-                for i in info:
-                    if i.get("is_success", False):
-                        episode_success = True
+                if done:
+                    # Check for success in info. Since eval_env is vectorized, info is a list of dicts
+                    episode_success = info[0].get("is_success", False)
+                    
             successes.append(float(episode_success))
         
         return np.mean(successes)

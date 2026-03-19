@@ -112,6 +112,7 @@ class DroneHRLWrapper(gym.Wrapper):
         
         self.goal_alt = 0.5
         self.sub_episode_count = 0
+        self.successful_subepisode_count = 0
         self.episode_start_state = None
         self.last_full_obs = None
         self.last_obs = None
@@ -150,14 +151,20 @@ class DroneHRLWrapper(gym.Wrapper):
         goal_alt = state_goal[5]
         alt_error = abs(current_alt - goal_alt)
         drift_error = np.sqrt(state_goal[1]**2 + state_goal[2]**2)
-        return -(alt_error + 2 * drift_error) * 3
+        velocity_mag = np.sqrt(state_goal[3]**2 + state_goal[4]**2)
+        return -(3.0 * alt_error + 0.5 * drift_error + 0.2 * velocity_mag)
 
     def calculate_sparse_reward(self, state_goal: np.ndarray) -> float:
         current_alt = state_goal[0]
         goal_alt = state_goal[5]
         alt_error = abs(current_alt - goal_alt)
         drift_error = np.sqrt(state_goal[1]**2 + state_goal[2]**2)
-        return 5.0 if alt_error < 0.1 and drift_error < 0.15 else 0.0
+        velocity_mag = np.sqrt(state_goal[3]**2 + state_goal[4]**2)
+        
+        if alt_error < 0.1 and drift_error < 0.15 and velocity_mag < 0.2:
+            return 1.0
+        else:
+            return 0.0
 
     def is_crashed(self, start_state: np.ndarray, end_state: np.ndarray) -> bool:
         current_alt = end_state[0]
@@ -165,7 +172,7 @@ class DroneHRLWrapper(gym.Wrapper):
         start_goal_distance = abs(start_state[0] - start_state[5])
         alt_error = abs(current_alt - goal_alt)
         drift_error = np.sqrt(end_state[1]**2 + end_state[2]**2)
-        return drift_error >= 0.5 or alt_error > start_goal_distance + 0.06
+        return drift_error >= 1 or alt_error > start_goal_distance + 0.1
 
     def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         if options is None:
@@ -192,6 +199,7 @@ class DroneHRLWrapper(gym.Wrapper):
         self.last_full_obs = full_obs
         self.fc.reset()
         self.sub_episode_count = 0
+        self.successful_subepisode_count = 0
         
         # Goal altitude: prioritize options, otherwise use last known or 0.5
         if "goal_alt" in options:
@@ -269,25 +277,33 @@ class DroneHRLWrapper(gym.Wrapper):
         self.sub_episode_count += 1
         self.last_obs = self._get_obs(self.last_full_obs)
         is_success = False
+        sparse_reward = self.calculate_sparse_reward(self.last_obs)
+        
         if not crashed:
             if self.is_crashed(self.episode_start_state, self.last_obs):
                 crashed = True
             else:
                 # Check if it reached the goal (sparse reward > 0)
-                if self.calculate_sparse_reward(self.last_obs) > 0:
+                if sparse_reward > 0:
                     is_success = True
+                    
+        if is_success:
+            self.successful_subepisode_count += 1
+        else:
+            self.successful_subepisode_count = 0
+            
+        sequence_bonus = self.successful_subepisode_count * 1.0
         
         p_end = self.calculate_potential(self.last_obs)
         shaping_reward = self.gamma * p_end - p_start
-        sparse_reward = self.calculate_sparse_reward(self.last_obs)
-        
+        action_penalty = 0.05 * np.sum(np.square(action[1:]))
         steps_remaining = self.sub_episode_limit - self.sub_episode_count
         
         if crashed:
             reward = -2.0 * steps_remaining
             terminated = True
         else:
-            reward = shaping_reward + sparse_reward
+            reward = shaping_reward + sparse_reward + sequence_bonus - action_penalty
             if self.sub_episode_count >= self.sub_episode_limit:
                 truncated = True
         
