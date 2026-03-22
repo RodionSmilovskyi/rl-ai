@@ -9,8 +9,56 @@
 absl-py==2.4.0
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-quantizer
+    #   ai-edge-tensorflow
+    #   keras-nightly
+    #   litert-torch
     #   mujoco
-    #   tensorboard
+    #   tb-nightly
+    #   torch-xla2
+ai-edge-litert==2.1.2
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-quantizer
+    #   litert-torch
+ai-edge-quantizer==0.4.2
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+ai-edge-tensorflow==2.21.0.dev20251110
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+annotated-doc==0.0.4
+    # via
+    #   -c dev-requirements.txt
+    #   typer
+anyio==4.12.1
+    # via
+    #   -c dev-requirements.txt
+    #   httpx
+astunparse==1.6.3
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+backports-strenum==1.2.8
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-litert
+certifi==2026.2.25
+    # via
+    #   -c dev-requirements.txt
+    #   httpcore
+    #   httpx
+    #   requests
+charset-normalizer==3.4.6
+    # via
+    #   -c dev-requirements.txt
+    #   requests
+click==8.3.1
+    # via
+    #   -c dev-requirements.txt
+    #   typer
 cloudpickle==3.1.2
     # via
     #   -c dev-requirements.txt
@@ -43,12 +91,19 @@ farama-notifications==0.0.4
 filelock==3.25.2
     # via
     #   -c dev-requirements.txt
+    #   huggingface-hub
     #   torch
+fire==0.7.1
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
 flatbuffers==25.12.19
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-litert
+    #   ai-edge-tensorflow
     #   onnxruntime
-fonttools==4.62.0
+fonttools==4.62.1
     # via
     #   -c dev-requirements.txt
     #   matplotlib
@@ -56,24 +111,66 @@ fsspec==2026.2.0
     # via
     #   -c dev-requirements.txt
     #   etils
+    #   huggingface-hub
     #   torch
+gast==0.7.0
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
 glfw==2.10.0
     # via
     #   -c dev-requirements.txt
     #   mujoco
+google-pasta==0.2.0
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
 grpcio==1.78.0
     # via
     #   -c dev-requirements.txt
-    #   tensorboard
+    #   ai-edge-tensorflow
+    #   tb-nightly
 gymnasium==1.2.3
     # via
     #   -c dev-requirements.txt
     #   rl-ai (pyproject.toml)
     #   stable-baselines3
+h11==0.16.0
+    # via
+    #   -c dev-requirements.txt
+    #   httpcore
+h5py==3.14.0
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+    #   keras-nightly
+hf-xet==1.4.2
+    # via
+    #   -c dev-requirements.txt
+    #   huggingface-hub
+httpcore==1.0.9
+    # via
+    #   -c dev-requirements.txt
+    #   httpx
+httpx==0.28.1
+    # via
+    #   -c dev-requirements.txt
+    #   huggingface-hub
+huggingface-hub==1.7.2
+    # via
+    #   -c dev-requirements.txt
+    #   tokenizers
+    #   transformers
 humanfriendly==10.0
     # via
     #   -c dev-requirements.txt
     #   coloredlogs
+idna==3.11
+    # via
+    #   -c dev-requirements.txt
+    #   anyio
+    #   httpx
+    #   requests
 imageio==2.37.3
     # via
     #   -c dev-requirements.txt
@@ -85,14 +182,56 @@ imageio-ffmpeg==0.6.0
     #   -c dev-requirements.txt
     #   imageio
     #   moviepy
+immutabledict==4.3.1
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-quantizer
+    #   torch-xla2
+iniconfig==2.3.0
+    # via
+    #   -c dev-requirements.txt
+    #   pytest
+jax==0.9.2
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+    #   torch-xla2
+jaxlib==0.9.2
+    # via
+    #   -c dev-requirements.txt
+    #   jax
+jaxtyping==0.3.9
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
 jinja2==3.1.6
     # via
     #   -c dev-requirements.txt
     #   torch
+kagglehub==1.0.0
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+kagglesdk==0.1.16
+    # via
+    #   -c dev-requirements.txt
+    #   kagglehub
+keras-nightly==3.14.0.dev2026032204
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
 kiwisolver==1.5.0
     # via
     #   -c dev-requirements.txt
     #   matplotlib
+libclang==18.1.1
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+litert-torch==0.8.0
+    # via
+    #   -c dev-requirements.txt
+    #   rl-ai (pyproject.toml)
 lxml==6.0.2
     # via
     #   -c dev-requirements.txt
@@ -100,7 +239,11 @@ lxml==6.0.2
 markdown==3.10.2
     # via
     #   -c dev-requirements.txt
-    #   tensorboard
+    #   tb-nightly
+markdown-it-py==4.0.0
+    # via
+    #   -c dev-requirements.txt
+    #   rich
 markupsafe==3.0.3
     # via
     #   -c dev-requirements.txt
@@ -110,6 +253,18 @@ matplotlib==3.10.8
     # via
     #   -c dev-requirements.txt
     #   stable-baselines3
+mdurl==0.1.2
+    # via
+    #   -c dev-requirements.txt
+    #   markdown-it-py
+ml-dtypes==0.5.4
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-quantizer
+    #   ai-edge-tensorflow
+    #   jax
+    #   jaxlib
+    #   keras-nightly
 moviepy==2.2.1
     # via
     #   -c dev-requirements.txt
@@ -122,24 +277,43 @@ mujoco==3.6.0
     # via
     #   -c dev-requirements.txt
     #   gymnasium
+multipledispatch==1.0.0
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+namex==0.1.0
+    # via
+    #   -c dev-requirements.txt
+    #   keras-nightly
 networkx==3.6.1
     # via
     #   -c dev-requirements.txt
     #   torch
-numpy==1.26.4
+numpy==2.4.3
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-litert
+    #   ai-edge-quantizer
+    #   ai-edge-tensorflow
     #   contourpy
     #   gymnasium
+    #   h5py
     #   imageio
+    #   jax
+    #   jaxlib
+    #   keras-nightly
+    #   litert-torch
     #   matplotlib
+    #   ml-dtypes
     #   moviepy
     #   mujoco
     #   onnx
     #   onnxruntime
     #   pandas
+    #   scipy
     #   stable-baselines3
-    #   tensorboard
+    #   tb-nightly
+    #   transformers
 onnx==1.16.2
     # via
     #   -c dev-requirements.txt
@@ -148,14 +322,30 @@ onnxruntime==1.19.2
     # via
     #   -c dev-requirements.txt
     #   rl-ai (pyproject.toml)
-packaging==24.2
+opt-einsum==3.4.0
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+    #   jax
+optree==0.19.0
+    # via
+    #   -c dev-requirements.txt
+    #   keras-nightly
+packaging==26.0
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
     #   gymnasium
+    #   huggingface-hub
+    #   kagglehub
+    #   keras-nightly
     #   matplotlib
     #   onnxruntime
-    #   tensorboard
-pandas==3.0.1
+    #   pytest
+    #   tb-nightly
+    #   transformers
+    #   wheel
+pandas==2.3.3
     # via
     #   -c dev-requirements.txt
     #   stable-baselines3
@@ -165,17 +355,24 @@ pillow==11.3.0
     #   imageio
     #   matplotlib
     #   moviepy
-    #   tensorboard
+    #   tb-nightly
+pluggy==1.6.0
+    # via
+    #   -c dev-requirements.txt
+    #   pytest
 proglog==0.1.12
     # via
     #   -c dev-requirements.txt
     #   moviepy
-protobuf==5.29.6
+protobuf==6.33.6
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-litert
+    #   ai-edge-tensorflow
+    #   kagglesdk
     #   onnx
     #   onnxruntime
-    #   tensorboard
+    #   tb-nightly
 psutil==7.2.2
     # via
     #   -c dev-requirements.txt
@@ -188,6 +385,11 @@ pygame==2.6.1
     # via
     #   -c dev-requirements.txt
     #   rl-ai (pyproject.toml)
+pygments==2.19.2
+    # via
+    #   -c dev-requirements.txt
+    #   pytest
+    #   rich
 pyopengl==3.1.10
     # via
     #   -c dev-requirements.txt
@@ -196,6 +398,10 @@ pyparsing==3.3.2
     # via
     #   -c dev-requirements.txt
     #   matplotlib
+pytest==9.0.2
+    # via
+    #   -c dev-requirements.txt
+    #   torch-xla2
 python-dateutil==2.9.0.post0
     # via
     #   -c dev-requirements.txt
@@ -205,13 +411,53 @@ python-dotenv==1.2.2
     # via
     #   -c dev-requirements.txt
     #   moviepy
+pytz==2026.1.post1
+    # via
+    #   -c dev-requirements.txt
+    #   pandas
 pyyaml==6.0.3
     # via
     #   -c dev-requirements.txt
+    #   huggingface-hub
+    #   kagglehub
+    #   transformers
     #   urdf-parser-py
+regex==2026.2.28
+    # via
+    #   -c dev-requirements.txt
+    #   transformers
+requests==2.32.5
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+    #   kagglehub
+    #   kagglesdk
+rich==14.3.3
+    # via
+    #   -c dev-requirements.txt
+    #   keras-nightly
+    #   typer
+safetensors==0.7.0
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+    #   transformers
+scipy==1.17.1
+    # via
+    #   -c dev-requirements.txt
+    #   jax
+    #   jaxlib
+    #   litert-torch
+shellingham==1.5.4
+    # via
+    #   -c dev-requirements.txt
+    #   typer
 six==1.17.0
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+    #   astunparse
+    #   google-pasta
     #   python-dateutil
 stable-baselines3==2.7.1
     # via
@@ -222,38 +468,99 @@ sympy==1.13.1
     #   -c dev-requirements.txt
     #   onnxruntime
     #   torch
-tensorboard==2.20.0
+tabulate==0.10.0
     # via
     #   -c dev-requirements.txt
-    #   rl-ai (pyproject.toml)
+    #   litert-torch
+tb-nightly==2.20.0a20250717
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
 tensorboard-data-server==0.7.2
     # via
     #   -c dev-requirements.txt
-    #   tensorboard
+    #   tb-nightly
+termcolor==3.3.0
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
+    #   fire
+tokenizers==0.22.2
+    # via
+    #   -c dev-requirements.txt
+    #   transformers
 torch==2.6.0+cpu
     # via
     #   -c dev-requirements.txt
+    #   litert-torch
     #   rl-ai (pyproject.toml)
     #   stable-baselines3
+    #   torch-xla2
+torch-xla2==0.0.1.dev202412041639
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+torchao==0.16.0+cpu
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
 tqdm==4.67.3
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-litert
+    #   huggingface-hub
+    #   kagglehub
     #   proglog
+    #   transformers
+transformers==5.3.0
+    # via
+    #   -c dev-requirements.txt
+    #   litert-torch
+typer==0.24.1
+    # via
+    #   -c dev-requirements.txt
+    #   huggingface-hub
+    #   transformers
 typing-extensions==4.15.0
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-litert
+    #   ai-edge-tensorflow
+    #   anyio
     #   etils
     #   grpcio
     #   gymnasium
+    #   huggingface-hub
+    #   optree
     #   torch
+tzdata==2025.3
+    # via
+    #   -c dev-requirements.txt
+    #   pandas
 urdf-parser-py==0.0.4
     # via
     #   -c dev-requirements.txt
     #   rl-ai (pyproject.toml)
+urllib3==2.6.3
+    # via
+    #   -c dev-requirements.txt
+    #   requests
+wadler-lindig==0.1.7
+    # via
+    #   -c dev-requirements.txt
+    #   jaxtyping
 werkzeug==3.1.6
     # via
     #   -c dev-requirements.txt
-    #   tensorboard
+    #   tb-nightly
+wheel==0.46.3
+    # via
+    #   -c dev-requirements.txt
+    #   astunparse
+wrapt==2.1.2
+    # via
+    #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
 zipp==3.23.0
     # via
     #   -c dev-requirements.txt
@@ -263,6 +570,7 @@ zipp==3.23.0
 setuptools==69.5.1
     # via
     #   -c dev-requirements.txt
+    #   ai-edge-tensorflow
     #   rl-ai (pyproject.toml)
-    #   tensorboard
+    #   tb-nightly
     #   torch

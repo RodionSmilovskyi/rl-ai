@@ -10,19 +10,19 @@ dependencies = [
     "onnxruntime==1.19.2",
     "stable-baselines3",
     "gymnasium[mujoco]",
-    "tensorboard",
     "imageio[ffmpeg]",
     "moviepy",
     "pygame",
     "setuptools<70.0.0",
     "pybullet",
     "urdf-parser-py",
+    "litert-torch"
 ]
 
 [project.optional-dependencies]
 dev = [
-    "boto3==1.38.3",
-    "sagemaker==2.243.3",
+    "boto3>=1.42.2",
+    "sagemaker>=3.0.0",
 ]
 
 [tool.setuptools]
