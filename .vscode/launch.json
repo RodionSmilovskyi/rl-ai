@@ -99,9 +99,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/trained_models/model_phase_4_final_ppo.onnx",
+                "${workspaceFolder}/trained_models/model_phase_4_final_sac.onnx",
                 "--goal-alt",
-                "0.9",
+                "0.3",
                 "--render",
                 "--max-steps",
                 "50"

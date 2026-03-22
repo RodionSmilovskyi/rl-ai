@@ -171,9 +171,11 @@ class AltitudeCurriculumCallback(BaseCallback):
             
         self.export_callback.trigger_export(filename=filename, model=self.model)
 
-    def _evaluate_success_rate(self) -> float:
+    def _evaluate_success_rate(self, tail_window: int = 6, required_successes: int = 4) -> float:
         """
         Run evaluation episodes and calculate the success rate.
+        For short episodes, look at the final `tail_window` steps.
+        If at least `required_successes` within that window are valid, it passes.
         """
         successes = []
         eval_goals = np.linspace(0.1, 0.9, self.n_eval_episodes)
@@ -190,17 +192,16 @@ class AltitudeCurriculumCallback(BaseCallback):
             obs = self.eval_env.reset()
             done = False
             episode_success = False
-            
             while not done:
                 action, _ = self.model.predict(obs, deterministic=True)
                 # VecEnv.step returns (obs, reward, done, info)
                 # where done is terminated | truncated
                 obs, reward, dones, info = self.eval_env.step(action)
                 done = dones[0]
-                if done:
-                    # Check for success in info. Since eval_env is vectorized, info is a list of dicts
-                    episode_success = info[0].get("is_success", False)
-                    
+                # Check for success in info. Since eval_env is vectorized, info is a list of dicts
+                for i in info:
+                    if i.get("is_success", False):
+                        episode_success = True
             successes.append(float(episode_success))
         
         return np.mean(successes)

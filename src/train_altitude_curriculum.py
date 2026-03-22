@@ -18,6 +18,7 @@ from common import ensure_directory
 from curriculum.altitude_callback import AltitudeCurriculumCallback
 from export_utils import SACOnnxablePolicy, SACExportCallback
 from env_utils import make_drone_env
+from settings import K_STEPS, SUB_EPISODE_LIMIT
 
 def train(params):
     print(f"Initialized SummaryWriter at {params['tensorboard_dir']}")
@@ -42,7 +43,7 @@ def train(params):
         eval_env, 
         eval_video_dir, 
         record_video_trigger=lambda x: True, 
-        video_length=200,
+        video_length=SUB_EPISODE_LIMIT * K_STEPS,
         name_prefix="eval_altitude"
     )
     
@@ -53,7 +54,7 @@ def train(params):
     # This callback manages the dynamic altitude curriculum and stops training when finished
     curriculum_callback = AltitudeCurriculumCallback(
         eval_env=eval_env,
-        success_threshold=0.8,
+        success_threshold=0.7,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=10,
         max_phase=params.get("max_phase", 4),

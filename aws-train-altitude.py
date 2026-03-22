@@ -36,7 +36,7 @@ if __name__ == "__main__":
         role=ROLE,
         max_run=24 * 60 * 60,
         instance_count=1,
-        instance_type="ml.c5.4xlarge", # Optimized for multi-CPU ParallelSAC
+        instance_type="ml.c5.9xlarge", # Optimized for multi-CPU ParallelSAC
         source_dir="src",
         entry_point="train_altitude_curriculum.py",
         output_path=output_path,
