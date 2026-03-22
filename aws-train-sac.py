@@ -2,8 +2,8 @@ import os
 import argparse
 import boto3
 import sagemaker
-from sagemaker.estimator import Estimator
-from sagemaker.debugger import TensorBoardOutputConfig
+from sagemaker.train import ModelTrainer
+from sagemaker.train.configs import SourceCode, Compute
 
 # Replicating configuration logic from object-detection/aws-train.py
 WORKDIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,25 +24,22 @@ if __name__ == "__main__":
     boto_session = boto3.session.Session(
         profile_name="905418352696_AdministratorAccess", region_name="us-east-1"
     )
-    sagemaker_session = sagemaker.Session(boto_session=boto_session)
+    from sagemaker.core.helper.session_helper import Session
+    sagemaker_session = Session(boto_session=boto_session)
     output_path = f"s3://{sagemaker_session.default_bucket()}/{args.prefix}"
-    checkpoint_path = f"s3://{sagemaker_session.default_bucket()}/{args.prefix}/checkpoint"
 
-    estimator = Estimator(
+    # V3 uses ModelTrainer instead of Estimator
+    trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
-        base_job_name=args.job_name,
-        # Using a PyTorch training image compatible with SB3 and Gymnasium
-        image_uri=f"763104351884.dkr.ecr.{boto_session.region_name}.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
+        training_image=f"763104351884.dkr.ecr.{boto_session.region_name}.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
         role=ROLE,
-        max_run=24 * 60 * 60,
-        instance_count=1,
-        instance_type="ml.c5.4xlarge", # Optimized for multi-CPU ParallelSAC
-        source_dir="src",
-        entry_point="train_sac.py",
-        output_path=output_path,
-        checkpoint_s3_uri=checkpoint_path,
-        tensorboard_output_config=TensorBoardOutputConfig(
-            s3_output_path=f"s3://{sagemaker_session.default_bucket()}/{args.prefix}/tensorboard"
+        source_code=SourceCode(
+            source_dir="src",
+            entry_script="train_sac.py"
+        ),
+        compute=Compute(
+            instance_count=1,
+            instance_type="ml.m5.large", # Cheapest available instance for training in us-east-1
         ),
         hyperparameters={
             "total-timesteps": args.total_timesteps,
@@ -55,6 +52,7 @@ if __name__ == "__main__":
     )
 
     # Note: No explicit training data upload required for Pendulum, as it's built into Gymnasium.
-    estimator.fit(wait=False)
+    job_name_kwargs = {"job_name": args.job_name} if args.job_name else {}
+    trainer.train(wait=False, **job_name_kwargs)
 
     print(f"SageMaker Training Job submitted: {args.job_name or args.prefix}")

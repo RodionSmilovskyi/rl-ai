@@ -30,9 +30,10 @@ def main():
 
     is_onnx = args.model_path.endswith(".onnx")
     is_torch = args.model_path.endswith(".pt") or args.model_path.endswith(".pth")
+    is_tflite = args.model_path.endswith(".tflite")
 
-    if not is_onnx and not is_torch:
-        print(f"Error: Unsupported model format for {args.model_path}. Use .onnx, .pt, or .pth")
+    if not is_onnx and not is_torch and not is_tflite:
+        print(f"Error: Unsupported model format for {args.model_path}. Use .onnx, .pt, .pth, or .tflite")
         sys.exit(1)
 
     # Start debugging session to capture outputs
@@ -54,6 +55,29 @@ def main():
             obs_input = obs.astype(np.float32).reshape(1, -1)
             onnx_outputs = session.run(None, {input_name: obs_input})
             return onnx_outputs[0][0]
+    elif is_tflite:
+        print(f"Loading TFLite model from {args.model_path}...")
+        try:
+            from ai_edge_litert.interpreter import Interpreter
+            interpreter = Interpreter(model_path=args.model_path)
+        except ImportError:
+            try:
+                from tflite_runtime.interpreter import Interpreter
+                interpreter = Interpreter(model_path=args.model_path)
+            except ImportError:
+                print("Error: TFLite interpreter not found. Please install ai-edge-litert or tflite-runtime.")
+                sys.exit(1)
+                
+        interpreter.allocate_tensors()
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+        
+        def predict(obs):
+            obs_input = obs.astype(np.float32).reshape(1, -1)
+            interpreter.set_tensor(input_details[0]['index'], obs_input)
+            interpreter.invoke()
+            output = interpreter.get_tensor(output_details[0]['index'])
+            return output[0]
     else:
         print(f"Loading PyTorch model from {args.model_path}...")
         # Load the model

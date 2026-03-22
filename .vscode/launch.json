@@ -99,7 +99,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/trained_models/model_phase_4_final_sac.onnx",
+                "${workspaceFolder}/output/model/model_phase_4_final_sac.pt",
                 "--goal-alt",
                 "0.3",
                 "--render",

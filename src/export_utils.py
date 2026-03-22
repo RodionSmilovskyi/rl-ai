@@ -61,11 +61,13 @@ class SACExportCallback(BaseCallback):
 
         onnx_path = os.path.join(self.model_dir, f"{base_fname}_sac.onnx")
         torch_path = os.path.join(self.model_dir, f"{base_fname}_sac.pt")
+        tflite_path = os.path.join(self.model_dir, f"{base_fname}_sac.tflite")
         zip_path = os.path.join(self.model_dir, f"{base_fname}_sac.zip")
         
         if self.verbose > 0:
             print(f"Exporting SAC model to ONNX: {onnx_path}")
             print(f"Exporting SAC model to PyTorch: {torch_path}")
+            print(f"Exporting SAC model to TFLite: {tflite_path}")
             print(f"Saving SAC model to: {zip_path}")
         
         # Save the whole model
@@ -78,9 +80,23 @@ class SACExportCallback(BaseCallback):
         observation_size = export_model.observation_space.shape
         dummy_input = th.randn(1, *observation_size)
         
-        # Trace and save
+        # Trace and save PyTorch model
         traced_model = th.jit.trace(onnxable_model, dummy_input)
         th.jit.save(traced_model, torch_path)
+
+        # Export to TFLite
+        try:
+            import litert_torch
+            from torch._export.converter import TS2EPConverter
+            
+            # Use TS2EPConverter to bridge TorchScript to ExportedProgram for LiteRT
+            converter = TS2EPConverter(traced_model, (dummy_input,))
+            exported_program = converter.convert()
+            edge_model = litert_torch.convert(exported_program.module(), (dummy_input,))
+            edge_model.export(tflite_path)
+        except Exception as e:
+            if self.verbose > 0:
+                print(f"[SACExport] Error exporting to TFLite: {e}")
 
         # Export to ONNX
         th.onnx.export(
@@ -124,11 +140,13 @@ class PPOExportCallback(BaseCallback):
 
         onnx_path = os.path.join(self.model_dir, f"{base_fname}_ppo.onnx")
         torch_path = os.path.join(self.model_dir, f"{base_fname}_ppo.pt")
+        tflite_path = os.path.join(self.model_dir, f"{base_fname}_ppo.tflite")
         zip_path = os.path.join(self.model_dir, f"{base_fname}_ppo.zip")
         
         if self.verbose > 0:
             print(f"Exporting PPO model to ONNX: {onnx_path}")
             print(f"Exporting PPO model to PyTorch: {torch_path}")
+            print(f"Exporting PPO model to TFLite: {tflite_path}")
             print(f"Saving PPO model to: {zip_path}")
         
         # Save the whole model
@@ -140,9 +158,23 @@ class PPOExportCallback(BaseCallback):
         observation_size = export_model.observation_space.shape
         dummy_input = th.randn(1, *observation_size)
         
-        # Trace and save
+        # Trace and save PyTorch model
         traced_model = th.jit.trace(onnxable_model, dummy_input)
         th.jit.save(traced_model, torch_path)
+
+        # Export to TFLite
+        try:
+            import litert_torch
+            from torch._export.converter import TS2EPConverter
+            
+            # Use TS2EPConverter to bridge TorchScript to ExportedProgram for LiteRT
+            converter = TS2EPConverter(traced_model, (dummy_input,))
+            exported_program = converter.convert()
+            edge_model = litert_torch.convert(exported_program.module(), (dummy_input,))
+            edge_model.export(tflite_path)
+        except Exception as e:
+            if self.verbose > 0:
+                print(f"[PPOExport] Error exporting to TFLite: {e}")
 
         # Export to ONNX
         th.onnx.export(
