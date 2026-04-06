@@ -3,7 +3,7 @@ import numpy as np
 
 # Physical Constants
 G = 9.81
-DRONE_WEIGHT = 0.280
+DRONE_WEIGHT = 0.421
 THRUST_TO_WEIGHT_RATIO = 4
 MAX_THROTTLE = 9.82 / 4.0 # (DRONE_WEIGHT * G * THRUST_TO_WEIGHT_RATIO) / 4.0
 

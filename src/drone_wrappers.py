@@ -37,9 +37,9 @@ class FlightController:
         self.pitch_pid = PIDController(Kp=2, Ki=0.1, Kd=0.5)
         self.yaw_pid = PIDController(Kp=2, Ki=1, Kd=0)
         
-        self.hover_throttle = 1280
-        self.min_throttle = 1200
-        self.max_throttle = 1350
+        self.hover_throttle = 1421
+        self.min_throttle = 1341
+        self.max_throttle = 1491
         self.min_roll_pitch = 1300
         self.max_roll_pitch = 1700
         
