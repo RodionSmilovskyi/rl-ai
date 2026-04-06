@@ -58,7 +58,6 @@ class AltitudeCurriculumCallback(BaseCallback):
         If they are closer than 0.15, push start altitude down.
         """
         start_alt = float(np.random.uniform(0.05, 0.95))
-        # goal_alt = float(np.random.uniform(0.1, 0.9))
         skewed_random = np.random.beta(2, 1) 
         goal_alt = round(0.1 + (skewed_random * 0.8), 3)
         

@@ -61,6 +61,34 @@
             }
         },
         {
+            "name": "Debug local Advanced Hover SAC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/train_advanced_hover.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--prefix",
+                "sac-advanced-hover-local",
+                "--total-timesteps",
+                "200000",
+                "--seed",
+                "0",
+                "--lr",
+                "0.0003",
+                "--batch-size",
+                "256",
+                "--model-zip",
+                "${workspaceFolder}/trained_models/basic_hover_sac.zip",
+                "--num-cpus",
+                "5"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "TF_CPP_MIN_LOG_LEVEL": "2",
+                "TF_ENABLE_ONEDNN_OPTS": "0"
+            }
+        },
+        {
             "name": "Debug aws train Altitude SAC",
             "type": "debugpy",
             "request": "launch",
@@ -71,6 +99,19 @@
                 "sac",
                 "--max-phase",
                 "1"
+            ]
+        },
+        {
+            "name": "Debug aws train Advanced Hover SAC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/aws-train-advanced-hover.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--job-name",
+                "sac-advanced-hover",
+                "--model-zip",
+                "${workspaceFolder}/trained_models/basic_hover_sac.zip"
             ]
         },
           {

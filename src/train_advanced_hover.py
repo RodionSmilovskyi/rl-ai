@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+import os
+import sys
+import argparse
+import random
+from typing import Any, Optional
+import numpy as np
+import torch as th
+from torch.utils.tensorboard import SummaryWriter
+
+import gymnasium as gym
+from stable_baselines3 import SAC
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, VecMonitor
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.policies import BasePolicy
+from stable_baselines3.common.monitor import Monitor
+from common import ensure_directory
+from curriculum.advanced_hover_callback import AdvancedHoverCallback
+from export_utils import SACOnnxablePolicy, SACExportCallback
+from env_utils import make_drone_env
+from settings import K_STEPS, SUB_EPISODE_LIMIT
+
+def train(params):
+    print(f"Initialized SummaryWriter at {params['tensorboard_dir']}")
+    num_cpu = params.get("num_cpus") or os.cpu_count() or 1
+    print(f"Dynamically scaling training to {num_cpu} CPUs using SubprocVecEnv.")
+    # Vectorized environments for Parallel SAC
+    env = SubprocVecEnv([make_drone_env(i, params["seed"]) for i in range(num_cpu)])
+    env = VecMonitor(env)
+
+    # Evaluation environment
+    # Each evaluation episode record video
+    eval_video_dir = os.path.join(params["output_dir"], "data", "eval_videos")
+    ensure_directory(eval_video_dir)
+
+    # We use a single environment for evaluation to make video recording easier
+    eval_env = SubprocVecEnv([make_drone_env(0, params["seed"] + 1000, render_mode="rgb_array")])    
+    eval_env = VecMonitor(eval_env)
+    
+    # Wrap eval_env in VecVideoRecorder
+    # record_video_trigger=lambda x: True means it records every episode in this env
+    eval_env = VecVideoRecorder(
+        eval_env, 
+        eval_video_dir, 
+        record_video_trigger=lambda x: True, 
+        video_length=SUB_EPISODE_LIMIT * K_STEPS,
+        name_prefix="eval_advanced_hover"
+    )
+    
+    # Callback for ONNX and PyTorch export on new best
+    export_callback = SACExportCallback(model_dir=params["model_dir"], verbose=1)
+    
+    # Curriculum Callback
+    # This callback manages the dynamic altitude curriculum and stops training when finished
+    curriculum_callback = AdvancedHoverCallback(
+        eval_env=eval_env,
+        success_threshold=0.7,
+        eval_freq=max(2000 // num_cpu, 1),
+        n_eval_episodes=10,
+        verbose=1,
+        export_callback=export_callback
+    )
+    
+    if "model_zip" in params and params["model_zip"]:
+        print(f"Loading existing model from {params['model_zip']}...")
+        model = SAC.load(
+            params["model_zip"],
+            env=env,
+            tensorboard_log=params["tensorboard_dir"],
+            custom_objects={"learning_rate": params["lr"]}
+        )
+    else:
+        print("Starting training from scratch...")
+        model = SAC(
+            "MlpPolicy",
+            env,
+            learning_rate=params["lr"],
+            batch_size=params["batch_size"],
+            seed=params["seed"],
+            verbose=1,
+            tensorboard_log=params["tensorboard_dir"],
+        )
+
+    print(f"Starting training for {params['total_timesteps']} timesteps...")
+    model.learn(
+        total_timesteps=params["total_timesteps"],
+        callback=[curriculum_callback],
+        reset_num_timesteps=False
+    )
+    print("Training complete.")
+   
+    # Close evaluation environment to flush any remaining video recordings
+    eval_env.close()
+    env.close()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prefix", type=str, default="sac-advanced-hover")
+    parser.add_argument("--total-timesteps", type=int, default=100000)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--model-zip", type=str, default=None, help="Path to existing model .zip to fine-tune")
+    parser.add_argument("--num-cpus", type=int, default=None, help="Number of CPUs to use")
+    args = parser.parse_args()
+
+    import json
+    sm_hps_str = os.environ.get("SM_HPS", "{}")
+    sm_hps = json.loads(sm_hps_str)
+    if sm_hps:
+        if "total-timesteps" in sm_hps: args.total_timesteps = int(sm_hps["total-timesteps"])
+        if "seed" in sm_hps: args.seed = int(sm_hps["seed"])
+        if "lr" in sm_hps: args.lr = float(sm_hps["lr"])
+        if "batch-size" in sm_hps: args.batch_size = int(sm_hps["batch-size"])
+        if "prefix" in sm_hps: args.prefix = sm_hps["prefix"]
+        if "model-zip" in sm_hps: args.model_zip = sm_hps["model-zip"]
+        if "num-cpus" in sm_hps: args.num_cpus = int(sm_hps["num-cpus"])
+
+    th.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+
+    sm_output_dir = os.environ.get("SM_OUTPUT_DIR", "/opt/ml/output")
+    sm_model_dir = os.environ.get("SM_MODEL_DIR", "/opt/ml/model")
+    checkpoint_dir = os.environ.get("CHECKPOINT_DIR", "/opt/ml/checkpoints")
+    tensorboard_dir = os.environ.get("TENSORBOARD_DIR", "/opt/ml/output/tensorboard")
+
+    for d in [sm_output_dir, sm_model_dir, checkpoint_dir, tensorboard_dir]:
+        ensure_directory(d)
+
+    train({
+        "prefix": args.prefix,
+        "output_dir": sm_output_dir,
+        "model_dir": sm_model_dir,
+        "checkpoint_dir": checkpoint_dir,
+        "tensorboard_dir": tensorboard_dir,
+        "batch_size": args.batch_size,
+        "total_timesteps": args.total_timesteps,
+        "lr": args.lr,
+        "seed": args.seed,
+        "model_zip": args.model_zip,
+        "num_cpus": args.num_cpus,
+    })
