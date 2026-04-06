@@ -68,7 +68,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--job-name",
-                "sac"
+                "sac",
+                "--max-phase",
+                "1"
             ]
         },
           {
@@ -99,12 +101,28 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/output/model/model_phase_4_final_sac.pt",
+                "${workspaceFolder}/trained_models/model_phase_4_final_sac.tflite",
                 "--goal-alt",
-                "0.3",
+                "0.65",
                 "--render",
                 "--max-steps",
                 "50"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        {
+            "name": "Conversion",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/test_conversion.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--model-path",
+                "${workspaceFolder}/trained_models/model_phase_4_final_sac.pt",
+                "--output-path",
+                "${workspaceFolder}/trained_models/model_phase_4_final_sac.tflite"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"

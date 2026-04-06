@@ -2,14 +2,14 @@ import os
 import argparse
 import boto3
 import sagemaker
-from sagemaker.estimator import Estimator
-from sagemaker.debugger import TensorBoardOutputConfig
+from sagemaker.train.model_trainer import ModelTrainer
+from sagemaker.core.training.configs import SourceCode, Compute
 
 # Replicating configuration logic from object-detection/aws-train.py
 WORKDIR = os.path.dirname(os.path.abspath(__file__))
 ROLE = "arn:aws:iam::905418352696:role/SageMakerFullAccess"
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefix", type=str, default="sac-altitude-run")
     parser.add_argument("--job-name", type=str, default=None)
@@ -24,25 +24,24 @@ if __name__ == "__main__":
     boto_session = boto3.session.Session(
         profile_name="905418352696_AdministratorAccess", region_name="us-east-1"
     )
-    sagemaker_session = sagemaker.Session(boto_session=boto_session)
+    from sagemaker.core.helper.session_helper import Session
+    sagemaker_session = Session(boto_session=boto_session)
     output_path = f"s3://{sagemaker_session.default_bucket()}/{args.prefix}"
-    checkpoint_path = f"s3://{sagemaker_session.default_bucket()}/{args.prefix}/checkpoint"
 
-    estimator = Estimator(
+    # V3 uses ModelTrainer instead of Estimator
+    trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
-        base_job_name=args.job_name,
-        # Using a PyTorch training image compatible with SB3 and Gymnasium
-        image_uri=f"763104351884.dkr.ecr.{boto_session.region_name}.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
+        training_image=f"763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
         role=ROLE,
-        max_run=24 * 60 * 60,
-        instance_count=1,
-        instance_type="ml.c5.9xlarge", # Optimized for multi-CPU ParallelSAC
-        source_dir="src",
-        entry_point="train_altitude_curriculum.py",
-        output_path=output_path,
-        checkpoint_s3_uri=checkpoint_path,
-        tensorboard_output_config=TensorBoardOutputConfig(
-            s3_output_path=f"s3://{sagemaker_session.default_bucket()}/{args.prefix}/tensorboard"
+        base_job_name=args.job_name or args.prefix, # Correctly setting the job name here in v3
+        source_code=SourceCode(
+            source_dir="src",
+            entry_script="train_altitude_curriculum.py",
+            requirements="requirements.txt"
+        ),
+        compute=Compute(
+            instance_count=1,
+            instance_type="ml.c5.9xlarge", # Optimized for multi-CPU ParallelSAC
         ),
         hyperparameters={
             "total-timesteps": args.total_timesteps,
@@ -55,8 +54,17 @@ if __name__ == "__main__":
     )
 
     # Note: No explicit training data upload required as assets are in source_dir/assets (handled by SageMaker)
-    # Wait, source_dir points to "src", but assets are in WORKDIR/assets. 
-    # I should probably move assets to src or adjust source_dir.
-    estimator.fit(wait=False)
+    trainer.train(wait=False)
+
+    # Manual cleanup of internal SageMaker temp dirs to avoid messy __del__ exceptions on exit
+    # (Attributes found via inspection: _temp_recipe_train_dir, _temp_code_dir)
+    for attr in ["_temp_recipe_train_dir", "_temp_code_dir"]:
+        temp_dir = getattr(trainer, attr, None)
+        if temp_dir is not None:
+            temp_dir.cleanup()
+            setattr(trainer, attr, None)
 
     print(f"SageMaker Altitude Training Job submitted: {args.job_name or args.prefix}")
+
+if __name__ == "__main__":
+    main()

@@ -93,6 +93,17 @@ if __name__ == "__main__":
     parser.add_argument("--max-phase", type=int, default=4)
     args = parser.parse_args()
 
+    import json
+    sm_hps_str = os.environ.get("SM_HPS", "{}")
+    sm_hps = json.loads(sm_hps_str)
+    if sm_hps:
+        if "total-timesteps" in sm_hps: args.total_timesteps = int(sm_hps["total-timesteps"])
+        if "seed" in sm_hps: args.seed = int(sm_hps["seed"])
+        if "lr" in sm_hps: args.lr = float(sm_hps["lr"])
+        if "batch-size" in sm_hps: args.batch_size = int(sm_hps["batch-size"])
+        if "prefix" in sm_hps: args.prefix = sm_hps["prefix"]
+        if "max-phase" in sm_hps: args.max_phase = int(sm_hps["max-phase"])
+
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)

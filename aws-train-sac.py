@@ -2,14 +2,14 @@ import os
 import argparse
 import boto3
 import sagemaker
-from sagemaker.train import ModelTrainer
-from sagemaker.train.configs import SourceCode, Compute
+from sagemaker.train.model_trainer import ModelTrainer
+from sagemaker.core.training.configs import SourceCode, Compute
 
 # Replicating configuration logic from object-detection/aws-train.py
 WORKDIR = os.path.dirname(os.path.abspath(__file__))
 ROLE = "arn:aws:iam::905418352696:role/SageMakerFullAccess"
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefix", type=str, default="rl-training-run")
     parser.add_argument("--job-name", type=str, default=None)
@@ -31,11 +31,13 @@ if __name__ == "__main__":
     # V3 uses ModelTrainer instead of Estimator
     trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
-        training_image=f"763104351884.dkr.ecr.{boto_session.region_name}.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
+        training_image=f"763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
         role=ROLE,
+        base_job_name=args.job_name or args.prefix,
         source_code=SourceCode(
             source_dir="src",
-            entry_script="train_sac.py"
+            entry_script="train_sac.py",
+            requirements="requirements.txt"
         ),
         compute=Compute(
             instance_count=1,
@@ -52,7 +54,16 @@ if __name__ == "__main__":
     )
 
     # Note: No explicit training data upload required for Pendulum, as it's built into Gymnasium.
-    job_name_kwargs = {"job_name": args.job_name} if args.job_name else {}
-    trainer.train(wait=False, **job_name_kwargs)
+    trainer.train(wait=False)
+
+    # Manual cleanup of internal SageMaker temp dirs to avoid messy __del__ exceptions on exit
+    for attr in ["_temp_recipe_train_dir", "_temp_code_dir"]:
+        temp_dir = getattr(trainer, attr, None)
+        if temp_dir is not None:
+            temp_dir.cleanup()
+            setattr(trainer, attr, None)
 
     print(f"SageMaker Training Job submitted: {args.job_name or args.prefix}")
+
+if __name__ == "__main__":
+    main()
