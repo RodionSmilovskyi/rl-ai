@@ -51,6 +51,9 @@ def main():
             "prefix": args.prefix,
             "max-phase": args.max_phase
         },
+        environment={
+            "TF_ENABLE_ONEDNN_OPTS": "0"
+        }
     )
 
     trainer.train(wait=False)

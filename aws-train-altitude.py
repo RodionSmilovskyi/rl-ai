@@ -31,7 +31,7 @@ def main():
     # V3 uses ModelTrainer instead of Estimator
     trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
-        training_image=f"763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
+        training_image="763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
         role=ROLE,
         base_job_name=args.job_name or args.prefix, # Correctly setting the job name here in v3
         source_code=SourceCode(
@@ -51,6 +51,9 @@ def main():
             "prefix": args.prefix,
             "max-phase": args.max_phase
         },
+        environment={
+            "TF_ENABLE_ONEDNN_OPTS": "0"
+        }
     )
 
     # Note: No explicit training data upload required as assets are in source_dir/assets (handled by SageMaker)

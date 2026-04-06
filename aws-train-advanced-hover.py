@@ -3,7 +3,7 @@ import os
 import argparse
 import boto3
 import sagemaker
-from sagemaker.train.model_trainer import ModelTrainer
+from sagemaker.train.model_trainer import ModelTrainer, StoppingCondition
 from sagemaker.core.training.configs import SourceCode, Compute, InputData
 
 # Replicating configuration logic from object-detection/aws-train.py
@@ -12,8 +12,7 @@ ROLE = "arn:aws:iam::905418352696:role/SageMakerFullAccess"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prefix", type=str, default="sac-advanced-hover-run")
-    parser.add_argument("--job-name", type=str, default=None)
+    parser.add_argument("--job-name", type=str, default="sac-advanced-hover")
     parser.add_argument("--total-timesteps", type=int, default=200000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
@@ -34,7 +33,7 @@ def main():
         "seed": args.seed,
         "lr": args.lr,
         "batch-size": args.batch_size,
-        "prefix": args.prefix,
+        "prefix": args.job_name,
     }
     
     if args.num_cpus is not None:
@@ -50,7 +49,7 @@ def main():
         # Upload data to s3, this will upload the file to [bucket]/[prefix]/input/model/<filename>
         s3_uri = sagemaker_session.upload_data(
             path=args.model_zip,
-            key_prefix=f"{args.prefix}/input/model"
+            key_prefix=f"{args.job_name}/input/model"
         )
         print(f"Uploaded to {s3_uri}")
         
@@ -68,9 +67,9 @@ def main():
 
     trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
-        training_image=f"763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
+        training_image="763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.6.0-cpu-py312-ubuntu22.04-sagemaker",
         role=ROLE,
-        base_job_name=args.job_name or args.prefix,
+        base_job_name=args.job_name,
         source_code=SourceCode(
             source_dir="src",
             entry_script="train_advanced_hover.py",
@@ -81,7 +80,13 @@ def main():
             instance_type="ml.c5.9xlarge", # Optimized for multi-CPU ParallelSAC
         ),
         hyperparameters=hyperparameters,
-        input_data_config=input_data_config
+        input_data_config=input_data_config,
+        stopping_condition=StoppingCondition(
+            max_runtime_in_seconds=3 * 60 * 60 # 3 hours
+        ),
+        environment={
+            "TF_ENABLE_ONEDNN_OPTS": "0"
+        }
     )
 
     trainer.train(wait=False)
@@ -93,7 +98,7 @@ def main():
             temp_dir.cleanup()
             setattr(trainer, attr, None)
 
-    print(f"SageMaker Advanced Hover Training Job submitted: {args.job_name or args.prefix}")
+    print(f"SageMaker Advanced Hover Training Job submitted: {args.job_name}")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,5 @@
 import numpy as np
+import torch as th
 from typing import Any, Optional
 
 from curriculum.altitude_callback import AltitudeCurriculumCallback
@@ -30,6 +31,22 @@ class AdvancedHoverCallback(AltitudeCurriculumCallback):
         # Advanced hover has no locked axes. It starts directly with everything unlocked.
         self.locked_axes = []
         self.current_phase = 1
+
+    def _on_training_start(self) -> None:
+        super()._on_training_start()
+        
+        # Reset entropy coefficient and optimizer for SAC
+        if hasattr(self.model, "log_ent_coef"):
+            if self.verbose > 0:
+                print(f"[Curriculum] Resetting entropy coefficient and optimizer on training start")
+                
+            with th.no_grad():
+                # Setting log(1.0) = 0.0. This forces the entropy multiplier back to 1.0 (max exploration)
+                self.model.log_ent_coef.fill_(0.0) 
+            
+            # CRITICAL: Clear the Adam optimizer's momentum state!
+            if hasattr(self.model, "ent_coef_optimizer"):
+                self.model.ent_coef_optimizer.state.clear()
         
     def _evaluate_success_rate(self, tail_window: int = 6, required_successes: int = 4) -> float:
         """

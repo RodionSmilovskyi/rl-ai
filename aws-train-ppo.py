@@ -53,6 +53,9 @@ def main():
             "env-id": args.env_id,
             "prefix": args.prefix
         },
+        environment={
+            "TF_ENABLE_ONEDNN_OPTS": "0"
+        }
     )
 
     # Note: No explicit training data upload required for Pendulum, as it's built into Gymnasium.
