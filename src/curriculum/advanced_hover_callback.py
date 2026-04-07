@@ -2,11 +2,11 @@ import numpy as np
 import torch as th
 from typing import Any, Optional
 
-from curriculum.altitude_callback import AltitudeCurriculumCallback
+from curriculum.basic_hover_callback import BasicHoverCallback
 
-class AdvancedHoverCallback(AltitudeCurriculumCallback):
+class AdvancedHoverCallback(BasicHoverCallback):
     """
-    Custom callback that extends AltitudeCurriculumCallback but uses a stricter
+    Custom callback that extends BasicHoverCallback but uses a stricter
     success evaluation criterion (requires at least 5 successful steps in an episode)
     and restricts training to a single phase.
     """

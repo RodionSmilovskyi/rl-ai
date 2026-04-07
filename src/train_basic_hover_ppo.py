@@ -6,25 +6,21 @@ import random
 from typing import Any, Optional
 import numpy as np
 import torch as th
-from torch.utils.tensorboard import SummaryWriter
 
 import gymnasium as gym
-from stable_baselines3 import SAC
+from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, VecMonitor
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines3.common.policies import BasePolicy
-from stable_baselines3.common.monitor import Monitor
 from common import ensure_directory
-from curriculum.altitude_callback import AltitudeCurriculumCallback
-from export_utils import SACOnnxablePolicy, SACExportCallback
+from curriculum.basic_hover_callback import BasicHoverCallback
+from export_utils import PPOOnnxablePolicy, PPOExportCallback
 from env_utils import make_drone_env
-from settings import K_STEPS, SUB_EPISODE_LIMIT
 
 def train(params):
     print(f"Initialized SummaryWriter at {params['tensorboard_dir']}")
-    num_cpu = params.get("num_cpus") or os.cpu_count() or 1
+    num_cpu = os.cpu_count() or 1
     print(f"Dynamically scaling training to {num_cpu} CPUs using SubprocVecEnv.")
-    # Vectorized environments for Parallel SAC
+    
+    # Vectorized environments for Parallel PPO
     env = SubprocVecEnv([make_drone_env(i, params["seed"]) for i in range(num_cpu)])
     env = VecMonitor(env)
 
@@ -38,23 +34,21 @@ def train(params):
     eval_env = VecMonitor(eval_env)
     
     # Wrap eval_env in VecVideoRecorder
-    # record_video_trigger=lambda x: True means it records every episode in this env
     eval_env = VecVideoRecorder(
         eval_env, 
         eval_video_dir, 
-        record_video_trigger=lambda x: True, 
-        video_length=SUB_EPISODE_LIMIT * K_STEPS,
-        name_prefix="eval_altitude"
+        record_video_trigger=lambda x: x == 0, 
+        video_length=200,
+        name_prefix="eval_basic_hover_ppo"
     )
     
     # Callback for ONNX and PyTorch export on new best
-    export_callback = SACExportCallback(model_dir=params["model_dir"], verbose=1)
+    export_callback = PPOExportCallback(model_dir=params["model_dir"], verbose=1)
     
     # Curriculum Callback
-    # This callback manages the dynamic altitude curriculum and stops training when finished
-    curriculum_callback = AltitudeCurriculumCallback(
+    curriculum_callback = BasicHoverCallback(
         eval_env=eval_env,
-        success_threshold=0.7,
+        success_threshold=0.8,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=10,
         max_phase=params.get("max_phase", 4),
@@ -62,11 +56,20 @@ def train(params):
         export_callback=export_callback
     )
     
-    model = SAC(
+    # PPO Hyperparameters
+    model = PPO(
         "MlpPolicy",
         env,
         learning_rate=params["lr"],
+        n_steps=2048,
         batch_size=params["batch_size"],
+        n_epochs=10,
+        gamma=0.99,
+        gae_lambda=0.95,
+        clip_range=0.2,
+        ent_coef=0.0,
+        vf_coef=0.5,
+        max_grad_norm=0.5,
         seed=params["seed"],
         verbose=1,
         tensorboard_log=params["tensorboard_dir"],
@@ -85,13 +88,12 @@ def train(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prefix", type=str, default="sac-altitude")
+    parser.add_argument("--prefix", type=str, default="ppo-basic-hover")
     parser.add_argument("--total-timesteps", type=int, default=100000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--batch-size", type=int, default=64) # PPO often uses smaller batches
     parser.add_argument("--max-phase", type=int, default=4)
-    parser.add_argument("--num-cpus", type=int, default=None, help="Number of CPUs to use")
     args = parser.parse_args()
 
     import json
@@ -104,7 +106,6 @@ if __name__ == "__main__":
         if "batch-size" in sm_hps: args.batch_size = int(sm_hps["batch-size"])
         if "prefix" in sm_hps: args.prefix = sm_hps["prefix"]
         if "max-phase" in sm_hps: args.max_phase = int(sm_hps["max-phase"])
-        if "num-cpus" in sm_hps: args.num_cpus = int(sm_hps["num-cpus"])
 
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -129,5 +130,4 @@ if __name__ == "__main__":
         "lr": args.lr,
         "seed": args.seed,
         "max_phase": args.max_phase,
-        "num_cpus": args.num_cpus,
     })

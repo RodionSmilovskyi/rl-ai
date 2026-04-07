@@ -4,6 +4,7 @@ import boto3
 import sagemaker
 from sagemaker.train.model_trainer import ModelTrainer, StoppingCondition
 from sagemaker.core.training.configs import SourceCode, Compute
+from sagemaker.train.configs import TensorBoardOutputConfig
 
 # Replicating configuration logic from object-detection/aws-train.py
 WORKDIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +12,7 @@ ROLE = "arn:aws:iam::905418352696:role/SageMakerFullAccess"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--job-name", type=str, default="sac-altitude")
+    parser.add_argument("--job-name", type=str, default="basic-hover")
     parser.add_argument("--total-timesteps", type=int, default=200000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
@@ -26,6 +27,12 @@ def main():
     )
     from sagemaker.core.helper.session_helper import Session
     sagemaker_session = Session(boto_session=boto_session)
+
+    # TensorBoard configuration
+    tensorboard_config = TensorBoardOutputConfig(
+        s3_output_path=f"s3://{sagemaker_session.default_bucket()}/{args.job_name}/tensorboard",
+        local_path="/opt/ml/output/tensorboard"
+    )
 
     hyperparameters = {
         "total-timesteps": args.total_timesteps,
@@ -47,7 +54,7 @@ def main():
         base_job_name=args.job_name,
         source_code=SourceCode(
             source_dir="src",
-            entry_script="train_altitude_curriculum.py",
+            entry_script="train_basic_hover.py",
             requirements="requirements.txt"
         ),
         compute=Compute(
@@ -62,6 +69,8 @@ def main():
             "TF_ENABLE_ONEDNN_OPTS": "0"
         }
     )
+    
+    trainer.with_tensorboard_output_config(tensorboard_config)
 
     # Note: No explicit training data upload required as assets are in source_dir/assets (handled by SageMaker)
     trainer.train(wait=False)
@@ -73,7 +82,7 @@ def main():
             temp_dir.cleanup()
             setattr(trainer, attr, None)
 
-    print(f"SageMaker Altitude Training Job submitted: {args.job_name}")
+    print(f"SageMaker Basic Hover Training Job submitted: {args.job_name}")
 
 if __name__ == "__main__":
     main()

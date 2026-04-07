@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional, Tuple
 
 from settings import K_STEPS, PHYSICS_FREQ
 
-class AltitudeCurriculumCallback(BaseCallback):
+class BasicHoverCallback(BaseCallback):
     """
     Custom callback for Stable-Baselines3 to manage a dynamic altitude curriculum.
     Phases:
@@ -82,7 +82,7 @@ class AltitudeCurriculumCallback(BaseCallback):
 
         # Update name prefix for video recording if VecVideoRecorder is used
         if hasattr(self.eval_env, 'name_prefix'):
-            self.eval_env.name_prefix = f"eval_altitude_phase_{self.current_phase}"
+            self.eval_env.name_prefix = f"eval_basic_hover_phase_{self.current_phase}"
 
         # Update training environments - Only locked_axes, randomization handled in _on_step
         self.training_env.env_method('set_next_episode_params', 
@@ -170,11 +170,10 @@ class AltitudeCurriculumCallback(BaseCallback):
             
         self.export_callback.trigger_export(filename=filename, model=self.model)
 
-    def _evaluate_success_rate(self, tail_window: int = 6, required_successes: int = 4) -> float:
+    def _evaluate_success_rate(self) -> float:
         """
         Run evaluation episodes and calculate the success rate.
-        For short episodes, look at the final `tail_window` steps.
-        If at least `required_successes` within that window are valid, it passes.
+        An episode is considered successful if its total reward is greater than 40.
         """
         successes = []
         eval_goals = np.linspace(0.1, 0.9, self.n_eval_episodes)
@@ -190,18 +189,15 @@ class AltitudeCurriculumCallback(BaseCallback):
             
             obs = self.eval_env.reset()
             done = False
-            episode_success = False
+            episode_reward = 0.0
             while not done:
                 action, _ = self.model.predict(obs, deterministic=True)
-                # VecEnv.step returns (obs, reward, done, info)
-                # where done is terminated | truncated
-                obs, reward, dones, info = self.eval_env.step(action)
+                # VecEnv.step returns (obs, reward, dones, info)
+                obs, rewards, dones, info = self.eval_env.step(action)
                 done = dones[0]
-                # Check for success in info. Since eval_env is vectorized, info is a list of dicts
-                for i in info:
-                    if i.get("is_success", False):
-                        episode_success = True
-            successes.append(float(episode_success))
+                episode_reward += rewards[0]
+                
+            successes.append(float(episode_reward > 30))
         
         return np.mean(successes)
 

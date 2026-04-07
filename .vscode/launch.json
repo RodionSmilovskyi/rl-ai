@@ -1,50 +1,50 @@
 {
     "version": "0.2.0",
     "configurations": [
+        // {
+        //     "name": "Debug local train Basic Hover PPO",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/src/train_basic_hover_ppo.py",
+        //     "console": "integratedTerminal",
+        //     "args": [
+        //         "--prefix",
+        //         "ppo-basic-hover-local",
+        //         "--total-timesteps",
+        //         "200000",
+        //         "--seed",
+        //         "0",
+        //         "--lr",
+        //         "0.0003",
+        //         "--batch-size",
+        //         "64",
+        //         "--max-phase",
+        //         "4"
+        //     ],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}/src"
+        //     }
+        // },
+        // {
+        //     "name": "Debug aws train Basic Hover PPO",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/aws-train-basic-hover-ppo.py",
+        //     "console": "integratedTerminal",
+        //     "args": [
+        //         "--job-name",
+        //         "ppo-basic-hover"
+        //     ]
+        // },
         {
-            "name": "Debug local train Altitude PPO",
+            "name": "Local basic hover",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/train_altitude_curriculum_ppo.py",
+            "program": "${workspaceFolder}/src/train_basic_hover.py",
             "console": "integratedTerminal",
             "args": [
                 "--prefix",
-                "ppo-altitude-local",
-                "--total-timesteps",
-                "200000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "64",
-                "--max-phase",
-                "4"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
-            }
-        },
-        {
-            "name": "Debug aws train Altitude PPO",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/aws-train-altitude-ppo.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--job-name",
-                "ppo"
-            ]
-        },
-        {
-            "name": "Debug local train Altitude SAC",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/train_altitude_curriculum.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "sac-altitude-local",
+                "basic-hover-local",
                 "--total-timesteps",
                 "200000",
                 "--seed",
@@ -64,14 +64,14 @@
             }
         },
         {
-            "name": "Debug local Advanced Hover SAC",
+            "name": "Local advanced hover",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/train_advanced_hover.py",
             "console": "integratedTerminal",
             "args": [
                 "--prefix",
-                "sac-advanced-hover-local",
+                "advanced-hover-local",
                 "--total-timesteps",
                 "200000",
                 "--seed",
@@ -92,27 +92,27 @@
             }
         },
         {
-            "name": "Debug aws train Altitude SAC",
+            "name": "AWS train basic hover",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/aws-train-altitude.py",
+            "program": "${workspaceFolder}/aws-train-basic-hover.py",
             "console": "integratedTerminal",
             "args": [
                 "--job-name",
-                "sac-basic-altitude",
+                "basic-hover",
                 "--max-phase",
                 "4"
             ]
         },
         {
-            "name": "Debug aws train Advanced Hover SAC",
+            "name": "AWS train advanced hover",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/aws-train-advanced-hover.py",
             "console": "integratedTerminal",
             "args": [
                 "--job-name",
-                "sac-advanced-hover",
+                "advanced-hover",
                 "--model-zip",
                 "${workspaceFolder}/trained_models/basic_hover.zip"
             ]
@@ -145,12 +145,14 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/trained_models/model_phase_1_final_sac.tflite",
+                "${workspaceFolder}/trained_models/model_phase_2_sac.onnx",
                 "--goal-alt",
-                "0.9",
+                "0.8",
                 "--render",
                 "--max-steps",
-                "24"
+                "24",
+                "--locked-axes",
+                "yaw"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"

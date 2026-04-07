@@ -4,6 +4,7 @@ import boto3
 import sagemaker
 from sagemaker.train.model_trainer import ModelTrainer
 from sagemaker.core.training.configs import SourceCode, Compute
+from sagemaker.train.configs import TensorBoardOutputConfig
 
 # Replicating configuration logic from object-detection/aws-train.py
 WORKDIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +12,7 @@ ROLE = "arn:aws:iam::905418352696:role/SageMakerFullAccess"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prefix", type=str, default="ppo-altitude-run")
+    parser.add_argument("--prefix", type=str, default="ppo-basic-hover-run")
     parser.add_argument("--job-name", type=str, default=None)
     parser.add_argument("--total-timesteps", type=int, default=200000)
     parser.add_argument("--seed", type=int, default=0)
@@ -28,6 +29,12 @@ def main():
     sagemaker_session = Session(boto_session=boto_session)
     output_path = f"s3://{sagemaker_session.default_bucket()}/{args.prefix}"
 
+    # TensorBoard configuration
+    tensorboard_config = TensorBoardOutputConfig(
+        s3_output_path=f"s3://{sagemaker_session.default_bucket()}/{args.prefix}/tensorboard",
+        local_path="/opt/ml/output/tensorboard"
+    )
+
     # V3 uses ModelTrainer instead of Estimator
     trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
@@ -36,7 +43,7 @@ def main():
         base_job_name=args.job_name or args.prefix,
         source_code=SourceCode(
             source_dir="src",
-            entry_script="train_altitude_curriculum_ppo.py",
+            entry_script="train_basic_hover_ppo.py",
             requirements="requirements.txt"
         ),
         compute=Compute(
@@ -51,6 +58,7 @@ def main():
             "prefix": args.prefix,
             "max-phase": args.max_phase
         },
+        tensorboard_output_config=tensorboard_config,
         environment={
             "TF_ENABLE_ONEDNN_OPTS": "0"
         }
@@ -65,7 +73,7 @@ def main():
             temp_dir.cleanup()
             setattr(trainer, attr, None)
 
-    print(f"SageMaker Altitude PPO Training Job submitted: {args.job_name or args.prefix}")
+    print(f"SageMaker Basic Hover PPO Training Job submitted: {args.job_name or args.prefix}")
 
 if __name__ == "__main__":
     main()

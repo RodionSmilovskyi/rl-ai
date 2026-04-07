@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any, Tuple, Dict, Optional, Union
 from drone_wrappers import DroneHRLWrapper
 
-class AltitudeCurriculumWrapper(DroneHRLWrapper):
+class BasicHoverCurriculumWrapper(DroneHRLWrapper):
     """
     Wrapper for DroneEnv to learn altitude control, extending DroneHRLWrapper.
     Uses the same observation and action space as DroneHRLWrapper.
