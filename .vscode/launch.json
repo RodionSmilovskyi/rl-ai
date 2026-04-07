@@ -54,10 +54,13 @@
                 "--batch-size",
                 "256",
                 "--max-phase",
-                "4"
+                "4",
+                "--num-cpus",
+                "5"
             ],
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "TF_ENABLE_ONEDNN_OPTS": "0"
             }
         },
         {
@@ -96,9 +99,9 @@
             "console": "integratedTerminal",
             "args": [
                 "--job-name",
-                "sac",
+                "sac-basic-altitude",
                 "--max-phase",
-                "1"
+                "4"
             ]
         },
         {
@@ -111,7 +114,7 @@
                 "--job-name",
                 "sac-advanced-hover",
                 "--model-zip",
-                "${workspaceFolder}/trained_models/basic_hover_sac.zip"
+                "${workspaceFolder}/trained_models/basic_hover.zip"
             ]
         },
           {
@@ -142,12 +145,12 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/trained_models/model_phase_4_final_sac.tflite",
+                "${workspaceFolder}/trained_models/model_phase_1_final_sac.tflite",
                 "--goal-alt",
-                "0.65",
+                "0.9",
                 "--render",
                 "--max-steps",
-                "50"
+                "24"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"

@@ -42,7 +42,8 @@ class AdvancedHoverCallback(AltitudeCurriculumCallback):
                 
             with th.no_grad():
                 # Setting log(1.0) = 0.0. This forces the entropy multiplier back to 1.0 (max exploration)
-                self.model.log_ent_coef.fill_(0.0) 
+                # self.model.log_ent_coef.fill_(0.0) 
+                self.model.log_ent_coef.fill_(np.log(0.5)) 
             
             # CRITICAL: Clear the Adam optimizer's momentum state!
             if hasattr(self.model, "ent_coef_optimizer"):

@@ -22,7 +22,7 @@ from settings import K_STEPS, SUB_EPISODE_LIMIT
 
 def train(params):
     print(f"Initialized SummaryWriter at {params['tensorboard_dir']}")
-    num_cpu = os.cpu_count() or 1
+    num_cpu = params.get("num_cpus") or os.cpu_count() or 1
     print(f"Dynamically scaling training to {num_cpu} CPUs using SubprocVecEnv.")
     # Vectorized environments for Parallel SAC
     env = SubprocVecEnv([make_drone_env(i, params["seed"]) for i in range(num_cpu)])
@@ -91,6 +91,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--max-phase", type=int, default=4)
+    parser.add_argument("--num-cpus", type=int, default=None, help="Number of CPUs to use")
     args = parser.parse_args()
 
     import json
@@ -103,6 +104,7 @@ if __name__ == "__main__":
         if "batch-size" in sm_hps: args.batch_size = int(sm_hps["batch-size"])
         if "prefix" in sm_hps: args.prefix = sm_hps["prefix"]
         if "max-phase" in sm_hps: args.max_phase = int(sm_hps["max-phase"])
+        if "num-cpus" in sm_hps: args.num_cpus = int(sm_hps["num-cpus"])
 
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -127,4 +129,5 @@ if __name__ == "__main__":
         "lr": args.lr,
         "seed": args.seed,
         "max_phase": args.max_phase,
+        "num_cpus": args.num_cpus,
     })
