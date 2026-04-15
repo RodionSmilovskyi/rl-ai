@@ -82,12 +82,8 @@ class DroneHRLWrapper(gym.Wrapper):
         return 5.0 if alt_error < 0.1 and drift_error < 0.15 else 0.0
 
     def is_crashed(self, start_state: np.ndarray, end_state: np.ndarray) -> bool:
-        current_alt = end_state[0]
-        goal_alt = end_state[5]
-        start_goal_distance = abs(start_state[0] - start_state[5])
-        alt_error = abs(current_alt - goal_alt)
         drift_error = np.sqrt(end_state[1]**2 + end_state[2]**2)
-        return drift_error >= 0.5 or alt_error > start_goal_distance + 0.06
+        return drift_error >= 0.5
 
     def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         if options is None:
