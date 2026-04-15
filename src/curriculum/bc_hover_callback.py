@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from curriculum.basic_hover_callback import BasicHoverCallback
 
-class AdvancedHoverCallback(BasicHoverCallback):
+class BcHoverCallback(BasicHoverCallback):
     """
     Custom callback that extends BasicHoverCallback but uses a stricter
     success evaluation criterion (requires at least 5 successful steps in an episode)
@@ -32,23 +32,6 @@ class AdvancedHoverCallback(BasicHoverCallback):
         self.locked_axes = []
         self.current_phase = 1
 
-    def _on_training_start(self) -> None:
-        super()._on_training_start()
-        
-        # Reset entropy coefficient and optimizer for SAC
-        if hasattr(self.model, "log_ent_coef"):
-            if self.verbose > 0:
-                print(f"[Curriculum] Resetting entropy coefficient and optimizer on training start")
-                
-            with th.no_grad():
-                # Setting log(1.0) = 0.0. This forces the entropy multiplier back to 1.0 (max exploration)
-                # self.model.log_ent_coef.fill_(0.0) 
-                self.model.log_ent_coef.fill_(np.log(0.5)) 
-            
-            # CRITICAL: Clear the Adam optimizer's momentum state!
-            if hasattr(self.model, "ent_coef_optimizer"):
-                self.model.ent_coef_optimizer.state.clear()
-        
     def _evaluate_success_rate(self, tail_window: int = 6, required_successes: int = 4) -> float:
         """
         Run evaluation episodes and calculate the success rate.

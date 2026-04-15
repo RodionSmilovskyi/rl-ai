@@ -15,7 +15,7 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.policies import BasePolicy
 from stable_baselines3.common.monitor import Monitor
 from common import ensure_directory
-from curriculum.advanced_hover_callback import AdvancedHoverCallback
+from curriculum.bc_hover_callback import BcHoverCallback
 from export_utils import SACOnnxablePolicy, SACExportCallback
 from env_utils import make_drone_env
 from settings import K_STEPS, SUB_EPISODE_LIMIT
@@ -34,26 +34,25 @@ def train(params):
     ensure_directory(eval_video_dir)
 
     # We use a single environment for evaluation to make video recording easier
-    eval_env = SubprocVecEnv([make_drone_env(0, params["seed"] + 1000, render_mode="rgb_array")])    
+    eval_env = SubprocVecEnv([make_drone_env(0, params["seed"] + 1000, render_mode="rgb_array")])
     eval_env = VecMonitor(eval_env)
-    
+
     # Wrap eval_env in VecVideoRecorder
     # record_video_trigger=lambda x: True means it records every episode in this env
     eval_env = VecVideoRecorder(
-        eval_env, 
-        eval_video_dir, 
-        record_video_trigger=lambda x: True, 
+        eval_env,
+        eval_video_dir,
+        record_video_trigger=lambda x: True,
         video_length=SUB_EPISODE_LIMIT * K_STEPS,
         name_prefix="eval_advanced_hover"
     )
-    
+
     # Callback for ONNX and PyTorch export on new best
     export_callback = SACExportCallback(model_dir=params["model_dir"], verbose=1)
-    
+
     # Curriculum Callback
     # This callback manages the dynamic altitude curriculum and stops training when finished
-    curriculum_callback = AdvancedHoverCallback(
-        eval_env=eval_env,
+    curriculum_callback = BcHoverCallback(        eval_env=eval_env,
         success_threshold=0.7,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=10,
