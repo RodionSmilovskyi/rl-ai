@@ -4,7 +4,7 @@ import torch as th
 from stable_baselines3.common.callbacks import BaseCallback
 from typing import List, Dict, Any, Optional, Tuple
 
-from settings import K_STEPS, PHYSICS_FREQ
+from settings import K_STEPS, MAX_ALTITUDE, PHYSICS_FREQ, START_ALTITUDE
 
 class BasicHoverCallback(BaseCallback):
     """
@@ -57,18 +57,9 @@ class BasicHoverCallback(BaseCallback):
         Generate random start and goal altitudes with a minimum gap of 0.15.
         If they are closer than 0.15, push start altitude down.
         """
-        start_alt = float(np.random.uniform(0.05, 0.95))
-        skewed_random = np.random.beta(2, 1) 
-        goal_alt = round(0.1 + (skewed_random * 0.8), 3)
-        
-        if abs(start_alt - goal_alt) < 0.15:
-            # Push start altitude down
-            start_alt = goal_alt - 0.15
-            # Ensure it doesn't go below minimum start altitude
-            if start_alt < 0.05:
-                # If pushing down is not possible, push it up
-                start_alt = goal_alt + 0.15
-                
+        start_alt = float(np.random.uniform(START_ALTITUDE, MAX_ALTITUDE - START_ALTITUDE))
+        goal_alt = float(np.random.uniform(START_ALTITUDE, MAX_ALTITUDE - START_ALTITUDE))
+               
         return start_alt, goal_alt
 
     def _apply_phase_params(self) -> None:

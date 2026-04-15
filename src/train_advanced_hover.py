@@ -15,7 +15,7 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.policies import BasePolicy
 from stable_baselines3.common.monitor import Monitor
 from common import ensure_directory
-from curriculum.bc_hover_callback import BcHoverCallback
+from curriculum.advanced_hover_callback import AdvancedHoverCallback
 from export_utils import SACOnnxablePolicy, SACExportCallback
 from env_utils import make_drone_env
 from settings import K_STEPS, SUB_EPISODE_LIMIT
@@ -52,10 +52,11 @@ def train(params):
 
     # Curriculum Callback
     # This callback manages the dynamic altitude curriculum and stops training when finished
-    curriculum_callback = BcHoverCallback(        eval_env=eval_env,
-        success_threshold=0.7,
+    curriculum_callback = AdvancedHoverCallback(
+        eval_env=eval_env,
+        success_threshold=20.0,
         eval_freq=max(2000 // num_cpu, 1),
-        n_eval_episodes=10,
+        n_eval_episodes=20,
         verbose=1,
         export_callback=export_callback
     )
