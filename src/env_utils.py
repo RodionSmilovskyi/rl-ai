@@ -1,7 +1,7 @@
 from typing import Optional
 from drone_env import DroneEnv
 from basic_hover_curriculum_wrapper import BasicHoverCurriculumWrapper
-from drone_wrappers import RoundActionWrapper
+from round_action_wrapper import RoundActionWrapper
 from settings import SUB_EPISODE_LIMIT
 
 def make_drone_env(rank: int, seed: int = 0, render_mode: Optional[str] = "rgb_array"):

@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from typing import Any, Tuple, Dict, Optional, Union
-from drone_wrappers import DroneHRLWrapper
+from drone_hrl_wrapper import DroneHRLWrapper
 
 class BasicHoverCurriculumWrapper(DroneHRLWrapper):
     """

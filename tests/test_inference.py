@@ -6,7 +6,7 @@ import gymnasium as gym
 import torch as th
 
 from debug_utils import InferenceDebugger
-from drone_wrappers import DroneHRLWrapper
+from drone_hrl_wrapper import DroneHRLWrapper
 
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))

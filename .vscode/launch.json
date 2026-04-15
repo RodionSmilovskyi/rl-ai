@@ -145,7 +145,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/trained_models/model_phase_2_sac.onnx",
+                "${workspaceFolder}/trained_models/model_phase_4_final_sac.tflite",
                 "--goal-alt",
                 "0.8",
                 "--render",

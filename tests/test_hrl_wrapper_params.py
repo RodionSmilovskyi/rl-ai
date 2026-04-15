@@ -7,7 +7,7 @@ import gymnasium as gym
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from drone_env import DroneEnv
-from drone_wrappers import DroneHRLWrapper
+from drone_hrl_wrapper import DroneHRLWrapper
 
 def test_hrl_wrapper_params():
     # Initialize environment

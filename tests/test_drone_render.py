@@ -7,7 +7,7 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from drone_env import DroneEnv
-from drone_wrappers import DroneHRLWrapper
+from drone_hrl_wrapper import DroneHRLWrapper
 from settings import SUB_EPISODE_LIMIT
 
 def main():
