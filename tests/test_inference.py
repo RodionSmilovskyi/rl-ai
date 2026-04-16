@@ -115,7 +115,7 @@ def main():
         while not done and step < args.max_steps:
             # Run inference
             action = predict(obs)
-            # action = [args.goal_alt * 2 - 1, 0, 0, 0]
+            action = [args.goal_alt * 2 - 1, 0, 0, 0]
               
             # Step environment
             obs, reward, terminated, truncated, info = env.step(action)

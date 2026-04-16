@@ -3,10 +3,13 @@ import os
 import sys
 import argparse
 import random
+import glob
+import json
 from typing import Any, Optional
 import numpy as np
 import torch as th
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import Dataset, DataLoader
 
 import gymnasium as gym
 from stable_baselines3 import SAC
@@ -19,6 +22,35 @@ from curriculum.advanced_hover_callback import AdvancedHoverCallback
 from export_utils import SACOnnxablePolicy, SACExportCallback
 from env_utils import make_drone_env
 from settings import K_STEPS, SUB_EPISODE_LIMIT
+
+class ExpertDataset(Dataset):
+    def __init__(self, data_dir):
+        self.observations = []
+        self.actions = []
+        
+        json_files = glob.glob(os.path.join(data_dir, "expert_episode_*.json"))
+        if not json_files:
+            print(f"Warning: No expert data found in {data_dir}")
+            return
+            
+        print(f"Loading {len(json_files)} expert episodes from {data_dir}...")
+        for file_path in json_files:
+            with open(file_path, "r") as f:
+                data = json.load(f)
+                for step_data in data:
+                    if "action" in step_data:
+                        self.observations.append([float(x) for x in step_data["obs"]])
+                        self.actions.append([float(x) for x in step_data["action"]])
+        
+        self.observations = th.tensor(self.observations, dtype=th.float32)
+        self.actions = th.tensor(self.actions, dtype=th.float32)
+        print(f"Loaded {len(self.observations)} samples.")
+
+    def __len__(self):
+        return len(self.observations)
+
+    def __getitem__(self, idx):
+        return self.observations[idx], self.actions[idx]
 
 def train(params):
     print(f"Initialized SummaryWriter at {params['tensorboard_dir']}")
@@ -54,34 +86,74 @@ def train(params):
     # This callback manages the dynamic altitude curriculum and stops training when finished
     curriculum_callback = AdvancedHoverCallback(
         eval_env=eval_env,
-        success_threshold=20.0,
+        success_threshold=25.0,
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=20,
         verbose=1,
         export_callback=export_callback
     )
     
-    if "model_zip" in params and params["model_zip"]:
-        print(f"Loading existing model from {params['model_zip']}...")
-        model = SAC.load(
-            params["model_zip"],
-            env=env,
-            tensorboard_log=params["tensorboard_dir"],
-            custom_objects={"learning_rate": params["lr"]}
-        )
-    else:
-        print("Starting training from scratch...")
-        model = SAC(
-            "MlpPolicy",
-            env,
-            learning_rate=params["lr"],
-            batch_size=params["batch_size"],
-            seed=params["seed"],
-            verbose=1,
-            tensorboard_log=params["tensorboard_dir"],
-        )
+    device = th.device("cuda" if th.cuda.is_available() else "cpu")
+    print(f"--- Hardware Check: Training on device: {device} ---")
 
-    print(f"Starting training for {params['total_timesteps']} timesteps...")
+    print("Starting training from scratch...")
+    model = SAC(
+        "MlpPolicy",
+        env,
+        learning_rate=params["lr"],
+        batch_size=params["batch_size"],
+        ent_coef=params["ent_coef"],
+        train_freq=(params["train_freq"], "step"),
+        gradient_steps=params["gradient_steps"],
+        seed=params["seed"],
+        verbose=1,
+        device=device,
+        tensorboard_log=params["tensorboard_dir"],
+    )
+
+    # 1. Behavior Cloning Pretraining (Optional)
+    if params.get("bc_data_dir") and os.path.exists(params["bc_data_dir"]):
+        print(f"Starting Behavior Cloning pretraining using data from {params['bc_data_dir']}...")
+        dataset = ExpertDataset(params["bc_data_dir"])
+        if len(dataset) > 0:
+            loader = DataLoader(dataset, batch_size=params["bc_batch_size"], shuffle=True)
+            actor = model.policy.actor
+            optimizer = th.optim.Adam(actor.parameters(), lr=params["lr"])
+            criterion = th.nn.MSELoss()
+            
+            actor.train()
+            for epoch in range(params["bc_epochs"]):
+                losses = []
+                for obs, target_actions in loader:
+                    obs, target_actions = obs.to(device), target_actions.to(device)
+                    optimizer.zero_grad()
+                    pred_actions = actor(obs)
+                    loss = criterion(pred_actions, target_actions)
+                    loss.backward()
+                    optimizer.step()
+                    losses.append(loss.item())
+                if (epoch + 1) % 10 == 0:
+                    print(f"BC Epoch {epoch+1}/{params['bc_epochs']}, Loss: {np.mean(losses):.6f}")
+            print("Behavior Cloning pretraining finished.")
+        else:
+            print("Expert dataset is empty, skipping BC.")
+
+    # 2. Critic Warmup (Optional)
+    if params.get("critic_warmup_steps", 0) > 0:
+        print(f"Starting Critic warmup for {params['critic_warmup_steps']} steps...")
+        # Freeze the actor for warm-up
+        for param in model.policy.actor.parameters():
+            param.requires_grad = False
+        
+        model.learn(total_timesteps=params["critic_warmup_steps"])
+        
+        # Unfreeze the actor for fine-tuning
+        for param in model.policy.actor.parameters():
+            param.requires_grad = True
+        print("Critic warmup finished.")
+
+    # 3. Main Training Loop
+    print(f"Starting main training for {params['total_timesteps']} timesteps...")
     model.learn(
         total_timesteps=params["total_timesteps"],
         callback=[curriculum_callback],
@@ -100,11 +172,19 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--model-zip", type=str, default=None, help="Path to existing model .zip to fine-tune")
     parser.add_argument("--num-cpus", type=int, default=None, help="Number of CPUs to use")
+    
+    # New arguments for BC and fine-tuned SAC
+    parser.add_argument("--ent-coef", type=float, default=0.001)
+    parser.add_argument("--train-freq", type=int, default=64)
+    parser.add_argument("--gradient-steps", type=int, default=64)
+    parser.add_argument("--critic-warmup-steps", type=int, default=0)
+    parser.add_argument("--bc-data-dir", type=str, default=None)
+    parser.add_argument("--bc-epochs", type=int, default=100)
+    parser.add_argument("--bc-batch-size", type=int, default=64)
+    
     args = parser.parse_args()
 
-    import json
     sm_hps_str = os.environ.get("SM_HPS", "{}")
     sm_hps = json.loads(sm_hps_str)
     if sm_hps:
@@ -113,8 +193,14 @@ if __name__ == "__main__":
         if "lr" in sm_hps: args.lr = float(sm_hps["lr"])
         if "batch-size" in sm_hps: args.batch_size = int(sm_hps["batch-size"])
         if "prefix" in sm_hps: args.prefix = sm_hps["prefix"]
-        if "model-zip" in sm_hps: args.model_zip = sm_hps["model-zip"]
         if "num-cpus" in sm_hps: args.num_cpus = int(sm_hps["num-cpus"])
+        if "ent-coef" in sm_hps: args.ent_coef = float(sm_hps["ent-coef"])
+        if "train-freq" in sm_hps: args.train_freq = int(sm_hps["train-freq"])
+        if "gradient-steps" in sm_hps: args.gradient_steps = int(sm_hps["gradient-steps"])
+        if "critic-warmup-steps" in sm_hps: args.critic_warmup_steps = int(sm_hps["critic-warmup-steps"])
+        if "bc-data-dir" in sm_hps: args.bc_data_dir = sm_hps["bc-data-dir"]
+        if "bc-epochs" in sm_hps: args.bc_epochs = int(sm_hps["bc-epochs"])
+        if "bc-batch-size" in sm_hps: args.bc_batch_size = int(sm_hps["bc-batch-size"])
 
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -138,6 +224,12 @@ if __name__ == "__main__":
         "total_timesteps": args.total_timesteps,
         "lr": args.lr,
         "seed": args.seed,
-        "model_zip": args.model_zip,
         "num_cpus": args.num_cpus,
+        "ent_coef": args.ent_coef,
+        "train_freq": args.train_freq,
+        "gradient_steps": args.gradient_steps,
+        "critic_warmup_steps": args.critic_warmup_steps,
+        "bc_data_dir": args.bc_data_dir,
+        "bc_epochs": args.bc_epochs,
+        "bc_batch_size": args.bc_batch_size,
     })

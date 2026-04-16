@@ -4,7 +4,7 @@ import argparse
 import boto3
 import sagemaker
 from sagemaker.train.model_trainer import ModelTrainer, StoppingCondition
-from sagemaker.core.training.configs import SourceCode, Compute, InputData
+from sagemaker.core.training.configs import SourceCode, Compute, InputData, TensorBoardOutputConfig
 
 # Replicating configuration logic from object-detection/aws-train.py
 WORKDIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,7 +18,16 @@ def main():
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--num-cpus", type=int, default=None)
-    parser.add_argument("--model-zip", type=str, default=None, help="Path to existing model .zip to fine-tune")
+    
+    # New arguments matching train_advanced_hover.py
+    parser.add_argument("--ent-coef", type=float, default=0.001)
+    parser.add_argument("--train-freq", type=int, default=64)
+    parser.add_argument("--gradient-steps", type=int, default=64)
+    parser.add_argument("--critic-warmup-steps", type=int, default=20000)
+    parser.add_argument("--bc-data-dir", type=str, default=None, help="Local path to expert dataset directory")
+    parser.add_argument("--bc-epochs", type=int, default=100)
+    parser.add_argument("--bc-batch-size", type=int, default=64)
+
     args = parser.parse_args()
 
     # AWS Session initialization (mimicking object-detection)
@@ -34,36 +43,44 @@ def main():
         "lr": args.lr,
         "batch-size": args.batch_size,
         "prefix": args.job_name,
+        "ent-coef": args.ent_coef,
+        "train-freq": args.train_freq,
+        "gradient-steps": args.gradient_steps,
+        "critic-warmup-steps": args.critic_warmup_steps,
+        "bc-epochs": args.bc_epochs,
+        "bc-batch-size": args.bc_batch_size,
     }
     
+    tensorboard_config = TensorBoardOutputConfig(
+        s3_output_path=f"s3://{sagemaker_session.default_bucket()}/{args.job_name}/tensorboard",
+        local_path="/opt/ml/output/tensorboard"
+    )
+
     if args.num_cpus is not None:
         hyperparameters["num-cpus"] = args.num_cpus
 
-    input_data_config = None
+    input_data_config = []
 
-    if args.model_zip:
-        if not os.path.exists(args.model_zip):
-            raise FileNotFoundError(f"Model zip file not found: {args.model_zip}")
-            
-        print(f"Uploading {args.model_zip} to S3...")
-        # Upload data to s3, this will upload the file to [bucket]/[prefix]/input/model/<filename>
-        s3_uri = sagemaker_session.upload_data(
-            path=args.model_zip,
-            key_prefix=f"{args.job_name}/input/model"
+    if args.bc_data_dir:
+        if not os.path.exists(args.bc_data_dir):
+            raise FileNotFoundError(f"BC data directory not found: {args.bc_data_dir}")
+        
+        print(f"Uploading expert dataset from {args.bc_data_dir} to S3...")
+        s3_bc_uri = sagemaker_session.upload_data(
+            path=args.bc_data_dir,
+            key_prefix=f"{args.job_name}/input/bc_data"
         )
-        print(f"Uploaded to {s3_uri}")
+        print(f"Uploaded to {s3_bc_uri}")
         
-        # SageMaker will download the S3 object to /opt/ml/input/data/model (since channel name is 'model')
-        # The file inside the container will be /opt/ml/input/data/model/<filename>
-        filename = os.path.basename(args.model_zip)
-        hyperparameters["model-zip"] = f"/opt/ml/input/data/model/{filename}"
+        # SageMaker will download the S3 folder to /opt/ml/input/data/bc_data
+        hyperparameters["bc-data-dir"] = "/opt/ml/input/data/bc_data"
         
-        input_data_config = [
+        input_data_config.append(
             InputData(
-                channel_name="model",
-                data_source=s3_uri
+                channel_name="bc_data",
+                data_source=s3_bc_uri
             )
-        ]
+        )
 
     trainer = ModelTrainer(
         sagemaker_session=sagemaker_session,
@@ -80,15 +97,16 @@ def main():
             instance_type="ml.c5.9xlarge", # Optimized for multi-CPU ParallelSAC
         ),
         hyperparameters=hyperparameters,
-        input_data_config=input_data_config,
+        input_data_config=input_data_config if input_data_config else None,
         stopping_condition=StoppingCondition(
-            max_runtime_in_seconds=3 * 60 * 60 # 3 hours
+            max_runtime_in_seconds=6 * 60 * 60 # 6 hours
         ),
         environment={
             "TF_ENABLE_ONEDNN_OPTS": "0"
         }
     )
 
+    trainer.with_tensorboard_output_config(tensorboard_config)
     trainer.train(wait=False)
 
     # Manual cleanup of internal SageMaker temp dirs to avoid messy __del__ exceptions on exit

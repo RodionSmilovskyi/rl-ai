@@ -37,7 +37,7 @@ class BasicHoverCallback(BaseCallback):
         
         # Initial parameters for Phase 1
         self.locked_axes = ['roll', 'pitch', 'yaw']
-        self.initial_pos = [0.0, 0.0, 0.05]
+        self.initial_pos = [0.0, 0.0, START_ALTITUDE]
         
     def _on_training_start(self) -> None:
         """
@@ -164,7 +164,7 @@ class BasicHoverCallback(BaseCallback):
     def _evaluate_success_rate(self) -> float:
         """
         Run evaluation episodes and calculate the success rate.
-        An episode is considered successful if its total reward is greater than 40.
+        An episode is considered successful if its total reward is greater than 20.
         """
         successes = []
         eval_goals = np.linspace(0.1, 0.9, self.n_eval_episodes)
@@ -172,11 +172,11 @@ class BasicHoverCallback(BaseCallback):
         
         for goal_alt in eval_goals:
             # Set a random goal and ensure current phase parameters are applied
-            # Use fixed initial position [0.0, 0.0, 0.05] for evaluation
+            # Use fixed initial position [0.0, 0.0, START_ALTITUDE] for evaluation
             self.eval_env.env_method('set_next_episode_params', 
                                      goal_alt=goal_alt,
                                      locked_axes=self.locked_axes.copy(),
-                                     initial_pos=[0.0, 0.0, 0.05])
+                                     initial_pos=[0.0, 0.0, START_ALTITUDE])
             
             obs = self.eval_env.reset()
             done = False
@@ -188,7 +188,7 @@ class BasicHoverCallback(BaseCallback):
                 done = dones[0]
                 episode_reward += rewards[0]
                 
-            successes.append(float(episode_reward > 30))
+            successes.append(float(episode_reward > 40))
         
         return np.mean(successes)
 

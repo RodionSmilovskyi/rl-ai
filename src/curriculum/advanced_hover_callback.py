@@ -58,4 +58,4 @@ class AdvancedHoverCallback(BasicHoverCallback):
                 done = dones[0]
                 total_reward += rewards[0]
         
-        return total_reward
+        return total_reward / self.n_eval_episodes

@@ -23,6 +23,7 @@ dependencies = [
 dev = [
     "boto3>=1.42.2",
     "sagemaker>=3.0.0",
+    "google-genai"
 ]
 
 [tool.setuptools]

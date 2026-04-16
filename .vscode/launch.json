@@ -80,16 +80,37 @@
                 "0.0003",
                 "--batch-size",
                 "256",
-                "--model-zip",
-                "${workspaceFolder}/trained_models/basic_hover_sac.zip",
                 "--num-cpus",
-                "5"
+                "5",
+                "--ent-coef",
+                "0.001",
+                "--train-freq",
+                "64",
+                "--gradient-steps",
+                "64",
+                "--critic-warmup-steps",
+                "10",
+                "--bc-data-dir",
+                "${workspaceFolder}/input/expert_dataset"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src",
                 "TF_CPP_MIN_LOG_LEVEL": "2",
                 "TF_ENABLE_ONEDNN_OPTS": "0"
             }
+        },
+        {
+            "name": "Generate expert data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/generate_expert_data.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--start",
+                "71",
+                "--end",
+                "99"
+            ]
         },
         {
             "name": "AWS train basic hover",
@@ -113,8 +134,16 @@
             "args": [
                 "--job-name",
                 "advanced-hover",
-                "--model-zip",
-                "${workspaceFolder}/trained_models/basic_hover.zip"
+                "--lr",
+                "0.0001",
+                "--total-timesteps",
+                "500000",
+                "--bc-epochs",
+                "500",
+                "--critic-warmup-steps",
+                "10000",
+                "--bc-data-dir",
+                "${workspaceFolder}/input/expert_dataset"
             ]
         },
           {
@@ -145,14 +174,12 @@
             "console": "integratedTerminal",
             "args": [
                 "--model-path",
-                "${workspaceFolder}/trained_models/model_phase_4_final_sac.tflite",
+                "${workspaceFolder}/trained_models/model_phase_1_final_sac.tflite",
                 "--goal-alt",
-                "0.8",
+                "0.1",
                 "--render",
                 "--max-steps",
                 "24",
-                "--locked-axes",
-                "yaw"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
