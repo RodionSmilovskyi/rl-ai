@@ -27,6 +27,7 @@ def main():
     parser.add_argument("--bc-data-dir", type=str, default=None, help="Local path to expert dataset directory")
     parser.add_argument("--bc-epochs", type=int, default=100)
     parser.add_argument("--bc-batch-size", type=int, default=64)
+    parser.add_argument("--success-threshold", type=float, default=25.0)
 
     args = parser.parse_args()
 
@@ -49,6 +50,7 @@ def main():
         "critic-warmup-steps": args.critic_warmup_steps,
         "bc-epochs": args.bc_epochs,
         "bc-batch-size": args.bc_batch_size,
+        "success-threshold": args.success_threshold,
     }
     
     tensorboard_config = TensorBoardOutputConfig(

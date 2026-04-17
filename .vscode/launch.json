@@ -91,7 +91,9 @@
                 "--critic-warmup-steps",
                 "10",
                 "--bc-data-dir",
-                "${workspaceFolder}/input/expert_dataset"
+                "${workspaceFolder}/input/expert_dataset",
+                "--success-threshold",
+                "11"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src",

@@ -86,7 +86,7 @@ def train(params):
     # This callback manages the dynamic altitude curriculum and stops training when finished
     curriculum_callback = AdvancedHoverCallback(
         eval_env=eval_env,
-        success_threshold=25.0,
+        success_threshold=params["success_threshold"],
         eval_freq=max(2000 // num_cpu, 1),
         n_eval_episodes=20,
         verbose=1,
@@ -182,6 +182,7 @@ if __name__ == "__main__":
     parser.add_argument("--bc-data-dir", type=str, default=None)
     parser.add_argument("--bc-epochs", type=int, default=100)
     parser.add_argument("--bc-batch-size", type=int, default=64)
+    parser.add_argument("--success-threshold", type=float, default=25.0)
     
     args = parser.parse_args()
 
@@ -201,6 +202,7 @@ if __name__ == "__main__":
         if "bc-data-dir" in sm_hps: args.bc_data_dir = sm_hps["bc-data-dir"]
         if "bc-epochs" in sm_hps: args.bc_epochs = int(sm_hps["bc-epochs"])
         if "bc-batch-size" in sm_hps: args.bc_batch_size = int(sm_hps["bc-batch-size"])
+        if "success-threshold" in sm_hps: args.success_threshold = float(sm_hps["success-threshold"])
 
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -232,4 +234,5 @@ if __name__ == "__main__":
         "bc_data_dir": args.bc_data_dir,
         "bc_epochs": args.bc_epochs,
         "bc_batch_size": args.bc_batch_size,
+        "success_threshold": args.success_threshold,
     })
