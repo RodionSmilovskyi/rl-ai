@@ -88,7 +88,7 @@ def train(params):
         eval_env=eval_env,
         success_threshold=params["success_threshold"],
         eval_freq=max(2000 // num_cpu, 1),
-        n_eval_episodes=20,
+        n_eval_episodes=params["n_eval_episodes"],
         verbose=1,
         export_callback=export_callback
     )
@@ -183,6 +183,7 @@ if __name__ == "__main__":
     parser.add_argument("--bc-epochs", type=int, default=100)
     parser.add_argument("--bc-batch-size", type=int, default=64)
     parser.add_argument("--success-threshold", type=float, default=25.0)
+    parser.add_argument("--n-eval-episodes", type=int, default=20)
     
     args = parser.parse_args()
 
@@ -203,6 +204,7 @@ if __name__ == "__main__":
         if "bc-epochs" in sm_hps: args.bc_epochs = int(sm_hps["bc-epochs"])
         if "bc-batch-size" in sm_hps: args.bc_batch_size = int(sm_hps["bc-batch-size"])
         if "success-threshold" in sm_hps: args.success_threshold = float(sm_hps["success-threshold"])
+        if "n-eval-episodes" in sm_hps: args.n_eval_episodes = int(sm_hps["n-eval-episodes"])
 
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -235,4 +237,5 @@ if __name__ == "__main__":
         "bc_epochs": args.bc_epochs,
         "bc_batch_size": args.bc_batch_size,
         "success_threshold": args.success_threshold,
+        "n_eval_episodes": args.n_eval_episodes,
     })

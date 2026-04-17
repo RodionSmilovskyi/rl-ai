@@ -93,7 +93,9 @@
                 "--bc-data-dir",
                 "${workspaceFolder}/input/expert_dataset",
                 "--success-threshold",
-                "11"
+                "11",
+                "--n-eval-episodes",
+                "1"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src",
@@ -145,7 +147,9 @@
                 "--critic-warmup-steps",
                 "10000",
                 "--bc-data-dir",
-                "${workspaceFolder}/input/expert_dataset"
+                "${workspaceFolder}/input/expert_dataset",
+                "--success-threshold",
+                "40",
             ]
         },
           {
@@ -178,7 +182,7 @@
                 "--model-path",
                 "${workspaceFolder}/trained_models/model_phase_1_final_sac.tflite",
                 "--goal-alt",
-                "0.1",
+                "0.95",
                 "--render",
                 "--max-steps",
                 "24",

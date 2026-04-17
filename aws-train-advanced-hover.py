@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--bc-epochs", type=int, default=100)
     parser.add_argument("--bc-batch-size", type=int, default=64)
     parser.add_argument("--success-threshold", type=float, default=25.0)
+    parser.add_argument("--n-eval-episodes", type=int, default=20)
 
     args = parser.parse_args()
 
@@ -51,6 +52,7 @@ def main():
         "bc-epochs": args.bc_epochs,
         "bc-batch-size": args.bc_batch_size,
         "success-threshold": args.success_threshold,
+        "n-eval-episodes": args.n_eval_episodes,
     }
     
     tensorboard_config = TensorBoardOutputConfig(
