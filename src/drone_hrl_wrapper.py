@@ -59,14 +59,6 @@ class DroneHRLWrapper(gym.Wrapper):
             self.goal_alt
         ], dtype=np.float32)
 
-    def _get_full_state_for_fc(self, full_obs: Dict[str, np.ndarray]) -> np.ndarray:
-        return np.array([
-            full_obs["altitude"][0],
-            full_obs["roll"][0],
-            full_obs["pitch"][0],
-            full_obs["yaw"][0]
-        ], dtype=np.float32)
-
     def calculate_potential(self, state_goal: np.ndarray) -> float:
         current_alt = state_goal[0]
         goal_alt = state_goal[5]
@@ -162,8 +154,8 @@ class DroneHRLWrapper(gym.Wrapper):
         truncated = False
         
         for _ in range(self.k_steps):
-            fc_state = self._get_full_state_for_fc(self.last_full_obs)
-            rc_commands = self.fc.compute_rc_commands(action, fc_state, 1.0/self.physics_freq)
+            current_alt_norm = self.last_full_obs["altitude"][0]
+            rc_commands = self.fc.compute_rc_commands(action, current_alt_norm, 1.0/self.physics_freq)
             
             full_obs, _, env_terminated, env_truncated, info = self.env.step(rc_commands)
             self.last_full_obs = full_obs

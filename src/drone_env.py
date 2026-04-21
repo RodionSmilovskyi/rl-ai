@@ -9,10 +9,12 @@ import pybullet_data
 from urdf_parser_py import urdf
 from pybullet_utils import bullet_client as bc
 
+from pid_controller import PIDController
 from settings import (
     G, MAX_THROTTLE, TILT_LIMIT, MAX_YAW_RATE_RADS, MAX_XY_SHIFT, MAX_VELOCITY,
     MAX_ALTITUDE, MIN_ALTITUDE, START_ALTITUDE, MAX_DISTANCE, MIN_VAL,
-    DRONE_IMG_WIDTH, DRONE_IMG_HEIGHT, NUMBER_OF_CHANNELS, ASSETS_DIRECTORY
+    DRONE_IMG_WIDTH, DRONE_IMG_HEIGHT, NUMBER_OF_CHANNELS, ASSETS_DIRECTORY,
+    PHYSICS_FREQ
 )
 
 def convert_range(
@@ -79,6 +81,11 @@ class DroneEnv(gym.Env):
         self.client.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
         self.client.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 1)
 
+        # Stabilization PIDs (Betaflight Angle Mode)
+        self.roll_pid = PIDController(Kp=2, Ki=0.1, Kd=0.5)
+        self.pitch_pid = PIDController(Kp=2, Ki=0.1, Kd=0.5)
+        self.yaw_pid = PIDController(Kp=2, Ki=1, Kd=0)
+
     def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
         super().reset(seed=seed)
         
@@ -89,6 +96,11 @@ class DroneEnv(gym.Env):
         self.step_number = 0
 
         self.plane_id = self.client.loadURDF("plane.urdf")
+
+        # Reset PIDs
+        self.roll_pid.reset()
+        self.pitch_pid.reset()
+        self.yaw_pid.reset()
 
         # Drone initialization parameters
         initial_pos = options.get("initial_pos", [MIN_VAL, MIN_VAL, START_ALTITUDE]) if options else [MIN_VAL, MIN_VAL, START_ALTITUDE]
@@ -211,20 +223,35 @@ class DroneEnv(gym.Env):
             self.client.disconnect()
 
     def _apply_physics(self, rc_command: Any):
-        throttle_norm = convert_range(rc_command[0], 1000, 2000, 0, 1)
-        roll_norm = convert_range(rc_command[1], 1000, 2000, -1, 1)
-        pitch_norm = convert_range(rc_command[2], 1000, 2000, -1, 1)
-        yaw_norm = convert_range(rc_command[3], 1000, 2000, -1, 1)
+        throttle_norm = np.clip(convert_range(rc_command[0], 1000, 2000, 0, 1), 0, 1)
+        desired_roll = np.clip(convert_range(rc_command[1], 1000, 2000, -1, 1), -1, 1)
+        desired_pitch = np.clip(convert_range(rc_command[2], 1000, 2000, -1, 1), -1, 1)
+        desired_yaw_rate = np.clip(convert_range(rc_command[3], 1000, 2000, -1, 1), -1, 1)
+
+        angles = self._get_angles() # Normalized by TILT_LIMIT
+        _, angular_velocity = self.client.getBaseVelocity(self.drone_id)
+        yaw_rate_norm = np.clip(angular_velocity[2] / MAX_YAW_RATE_RADS, -1.0, 1.0)
+
+        dt = 1.0 / PHYSICS_FREQ
+
+        self.roll_pid.setpoint = desired_roll
+        roll_corr = self.roll_pid.compute(angles[0], dt) * 0.04
+
+        self.pitch_pid.setpoint = desired_pitch
+        pitch_corr = self.pitch_pid.compute(angles[1], dt) * 0.04
+
+        self.yaw_pid.setpoint = desired_yaw_rate
+        yaw_corr = self.yaw_pid.compute(yaw_rate_norm, dt) * 0.04
 
         motor_mix_thrust = np.array([
-            throttle_norm + roll_norm - pitch_norm, # FL
-            throttle_norm + roll_norm + pitch_norm, # RL
-            throttle_norm - roll_norm - pitch_norm, # FR
-            throttle_norm - roll_norm + pitch_norm  # RR
+            throttle_norm + roll_corr - pitch_corr, # FL
+            throttle_norm + roll_corr + pitch_corr, # RL
+            throttle_norm - roll_corr - pitch_corr, # FR
+            throttle_norm - roll_corr + pitch_corr  # RR
         ])
         motor_mix_thrust = np.clip(motor_mix_thrust, 0, 1)
         thrusts = motor_mix_thrust * MAX_THROTTLE
-        z_torque = yaw_norm * MAX_THROTTLE
+        z_torque = yaw_corr * MAX_THROTTLE
             
         for i in range(self.num_motors):
             self.client.applyExternalForce(

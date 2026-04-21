@@ -159,6 +159,16 @@
             }
         },
         {
+            "name": "Test: Angle Mode",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/test_angle_mode.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        {
             "name": "Conversion",
             "type": "debugpy",
             "request": "launch",
