@@ -1,123 +1,27 @@
 {
     "version": "0.2.0",
     "configurations": [
-        // {
-        //     "name": "Debug local train Basic Hover PPO",
-        //     "type": "debugpy",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/src/train_basic_hover_ppo.py",
-        //     "console": "integratedTerminal",
-        //     "args": [
-        //         "--prefix",
-        //         "ppo-basic-hover-local",
-        //         "--total-timesteps",
-        //         "200000",
-        //         "--seed",
-        //         "0",
-        //         "--lr",
-        //         "0.0003",
-        //         "--batch-size",
-        //         "64",
-        //         "--max-phase",
-        //         "4"
-        //     ],
-        //     "env": {
-        //         "PYTHONPATH": "${workspaceFolder}/src"
-        //     }
-        // },
-        // {
-        //     "name": "Debug aws train Basic Hover PPO",
-        //     "type": "debugpy",
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/aws-train-basic-hover-ppo.py",
-        //     "console": "integratedTerminal",
-        //     "args": [
-        //         "--job-name",
-        //         "ppo-basic-hover"
-        //     ]
-        // },
         {
-            "name": "Local basic hover",
+            "name": "Test: Hardware Controller & Physics",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/train_basic_hover.py",
+            "program": "${workspaceFolder}/tests/test_hardware_controller.py",
             "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "basic-hover-local",
-                "--total-timesteps",
-                "200000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "256",
-                "--max-phase",
-                "4",
-                "--num-cpus",
-                "5"
-            ],
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "TF_ENABLE_ONEDNN_OPTS": "0"
+                "PYTHONPATH": "${workspaceFolder}/src"
             }
         },
         {
-            "name": "Local advanced hover",
+            "name": "Test: Angle Mode Batch",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/train_advanced_hover.py",
+            "program": "${workspaceFolder}/tests/test_angle_mode_batch.py",
             "console": "integratedTerminal",
-            "args": [
-                "--prefix",
-                "advanced-hover-local",
-                "--total-timesteps",
-                "200000",
-                "--seed",
-                "0",
-                "--lr",
-                "0.0003",
-                "--batch-size",
-                "256",
-                "--model-zip",
-                "${workspaceFolder}/trained_models/basic_hover_sac.zip",
-                "--num-cpus",
-                "5"
-            ],
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "TF_CPP_MIN_LOG_LEVEL": "2",
-                "TF_ENABLE_ONEDNN_OPTS": "0"
+                "PYTHONPATH": "${workspaceFolder}/src"
             }
         },
         {
-            "name": "AWS train basic hover",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/aws-train-basic-hover.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--job-name",
-                "basic-hover",
-                "--max-phase",
-                "4"
-            ]
-        },
-        {
-            "name": "AWS train advanced hover",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/aws-train-advanced-hover.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--job-name",
-                "advanced-hover",
-                "--model-zip",
-                "${workspaceFolder}/trained_models/basic_hover.zip"
-            ]
-        },
-          {
             "name": "Test: HRL Wrapper Params",
             "type": "debugpy",
             "request": "launch",

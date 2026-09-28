@@ -5,12 +5,11 @@ import numpy as np
 import gymnasium as gym
 import torch as th
 
-from debug_utils import InferenceDebugger
-from drone_hrl_wrapper import DroneHRLWrapper
-
-# Add src to path
+# Add src to path first
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
+from debug_utils import InferenceDebugger
+from drone_hrl_wrapper import DroneHRLWrapper
 from drone_env import DroneEnv
 
 
@@ -73,7 +72,18 @@ def main():
         output_details = interpreter.get_output_details()
         
         def predict(obs):
-            obs_input = obs.astype(np.float32).reshape(1, -1)
+            expected_dim = input_details[0]['shape'][-1]
+            if obs.shape[-1] != expected_dim:
+                if expected_dim == 6 and obs.shape[-1] == 7:
+                    # Omit front_distance (index 1) for 6D legacy models
+                    obs_used = np.array([obs[0], obs[2], obs[3], obs[4], obs[5], obs[6]], dtype=np.float32)
+                elif expected_dim == 2:
+                    obs_used = np.array([obs[0], obs[6]], dtype=np.float32)
+                else:
+                    obs_used = obs[:expected_dim]
+            else:
+                obs_used = obs
+            obs_input = obs_used.astype(np.float32).reshape(1, -1)
             interpreter.set_tensor(input_details[0]['index'], obs_input)
             interpreter.invoke()
             output = interpreter.get_tensor(output_details[0]['index'])

@@ -29,8 +29,8 @@ def run_scenario(env, roll_deg, pitch_deg, yaw_rate_deg, label):
     rc_pitch = 1500 + 500 * desired_pitch_norm
     rc_yaw = 1500 + 500 * desired_yaw_rate_norm
     
-    # Very careful throttle to stay within 0.05-1.0m altitude
-    throttle = 1450 if (abs(roll_deg) < 35 and abs(pitch_deg) < 35) else 1600
+    # Throttle aligned with 1550 hover baseline to stay airborne
+    throttle = 1580 if (abs(roll_deg) < 35 and abs(pitch_deg) < 35) else 1680
     rc_command = np.array([throttle, rc_roll, rc_pitch, rc_yaw], dtype=np.float32)
     
     print(f"Target: roll={roll_deg:5.1f}°, pitch={pitch_deg:5.1f}°, yaw_rate={yaw_rate_deg:5.1f}°/s")
@@ -64,8 +64,8 @@ def run_scenario(env, roll_deg, pitch_deg, yaw_rate_deg, label):
     # Briefly tilt the drone
     for _ in range(60): env.step(rc_command)
     
-    # Return to level
-    rc_command_level = np.array([1450, 1500, 1500, 1500], dtype=np.float32)
+    # Return to level at hover baseline
+    rc_command_level = np.array([1550, 1500, 1500, 1500], dtype=np.float32)
     for _ in range(int(PHYSICS_FREQ * 2)):
         obs, reward, terminated, truncated, info = env.step(rc_command_level)
         if terminated or truncated: break

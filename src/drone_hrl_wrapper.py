@@ -21,8 +21,8 @@ class DroneHRLWrapper(gym.Wrapper):
         self.physics_freq = PHYSICS_FREQ
         
         self.observation_space = gym.spaces.Box(
-            low=np.array([0, -1, -1, -1, -1, 0], dtype=np.float32),
-            high=np.array([1, 1, 1, 1, 1, 1], dtype=np.float32),
+            low=np.array([0, 0, -1, -1, -1, -1, 0], dtype=np.float32),
+            high=np.array([1, 1, 1, 1, 1, 1, 1], dtype=np.float32),
             dtype=np.float32
         )
         
@@ -50,8 +50,10 @@ class DroneHRLWrapper(gym.Wrapper):
         self.next_episode_params.update(params)
 
     def _get_obs(self, full_obs: Dict[str, np.ndarray]) -> np.ndarray:
+        front_dist = full_obs.get("front_distance", full_obs.get("distance"))[0]
         return np.array([
             full_obs["altitude"][0],
+            front_dist,
             full_obs["shift_x"][0],
             full_obs["shift_y"][0],
             full_obs["velocity_x"][0],
@@ -61,20 +63,20 @@ class DroneHRLWrapper(gym.Wrapper):
 
     def calculate_potential(self, state_goal: np.ndarray) -> float:
         current_alt = state_goal[0]
-        goal_alt = state_goal[5]
+        goal_alt = state_goal[6]
         alt_error = abs(current_alt - goal_alt)
-        drift_error = np.sqrt(state_goal[1]**2 + state_goal[2]**2)
+        drift_error = np.sqrt(state_goal[2]**2 + state_goal[3]**2)
         return -(alt_error + 2 * drift_error) * 3
 
     def calculate_sparse_reward(self, state_goal: np.ndarray) -> float:
         current_alt = state_goal[0]
-        goal_alt = state_goal[5]
+        goal_alt = state_goal[6]
         alt_error = abs(current_alt - goal_alt)
-        drift_error = np.sqrt(state_goal[1]**2 + state_goal[2]**2)
+        drift_error = np.sqrt(state_goal[2]**2 + state_goal[3]**2)
         return 5.0 if alt_error < 0.1 and drift_error < 0.15 else 0.0
 
     def is_crashed(self, start_state: np.ndarray, end_state: np.ndarray) -> bool:
-        drift_error = np.sqrt(end_state[1]**2 + end_state[2]**2)
+        drift_error = np.sqrt(end_state[2]**2 + end_state[3]**2)
         return drift_error >= 0.5
 
     def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[np.ndarray, Dict[str, Any]]:

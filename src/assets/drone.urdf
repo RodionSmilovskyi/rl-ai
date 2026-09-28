@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<robot name="volador_vx35_280g">
-  <gazebo kv="3750" props_diameter="0.0765" voltage="14.8" />
+<robot name="drone_475g">
+  <gazebo kv="3750" props_diameter="0.0762" voltage="14.8" />
 
   <material name="blue">
     <color rgba="0.1 0.1 0.8 0.7"/> </material>
@@ -13,7 +13,7 @@
   <link name="body_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.357"/>
+      <mass value="0.411"/>
       <inertia ixx="0.000058" ixy="0" ixz="0" iyy="0.000288" iyz="0" izz="0.000288"/>
     </inertial>
     <visual>

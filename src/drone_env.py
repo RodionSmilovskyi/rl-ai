@@ -12,7 +12,8 @@ from pybullet_utils import bullet_client as bc
 from pid_controller import PIDController
 from settings import (
     G, MAX_THROTTLE, TILT_LIMIT, MAX_YAW_RATE_RADS, MAX_XY_SHIFT, MAX_VELOCITY,
-    MAX_ALTITUDE, MIN_ALTITUDE, START_ALTITUDE, MAX_DISTANCE, MIN_VAL,
+    MAX_ALTITUDE, MIN_ALTITUDE, START_ALTITUDE, MAX_DISTANCE, MAX_FRONT_DISTANCE,
+    ALPHA_ALT, ALPHA_FRONT, ALPHA_FLOW, FLOW_DEADBAND, MIN_VAL,
     DRONE_IMG_WIDTH, DRONE_IMG_HEIGHT, NUMBER_OF_CHANNELS, ASSETS_DIRECTORY,
     PHYSICS_FREQ
 )
@@ -37,6 +38,8 @@ class DroneEnv(gym.Env):
         self.plane_id = None
         self.drone_id = None
         self.step_number = 0
+        self.filtered_alt = None
+        self.filtered_front_dist = None
 
         self.observation_space = gym.spaces.Dict(
             {
@@ -46,11 +49,12 @@ class DroneEnv(gym.Env):
                     shape=(DRONE_IMG_WIDTH, DRONE_IMG_HEIGHT, NUMBER_OF_CHANNELS),
                     dtype=np.uint8,
                 ),
-                "altitude": gym.spaces.Box(0, MAX_ALTITUDE, shape=(1,), dtype=np.float32),
+                "altitude": gym.spaces.Box(0, 1.0, shape=(1,), dtype=np.float32),
                 "roll": gym.spaces.Box(-math.pi, math.pi, shape=(1,), dtype=np.float32),
                 "pitch": gym.spaces.Box(-math.pi, math.pi, shape=(1,), dtype=np.float32),
                 "yaw": gym.spaces.Box(-1, 1, shape=(1,), dtype=np.float32),
-                "distance": gym.spaces.Box(0, MAX_DISTANCE, shape=(1,), dtype=np.float32),
+                "distance": gym.spaces.Box(0, 1.0, shape=(1,), dtype=np.float32),
+                "front_distance": gym.spaces.Box(0, 1.0, shape=(1,), dtype=np.float32),
                 "shift_x": gym.spaces.Box(-1, 1, shape=(1,), dtype=np.float32),
                 "shift_y": gym.spaces.Box(-1, 1, shape=(1,), dtype=np.float32),
                 "velocity_x": gym.spaces.Box(-1, 1, shape=(1,), dtype=np.float32),
@@ -102,6 +106,10 @@ class DroneEnv(gym.Env):
         self.pitch_pid.reset()
         self.yaw_pid.reset()
 
+        # Reset sensor filter states
+        self.filtered_alt = None
+        self.filtered_front_dist = None
+
         # Drone initialization parameters
         initial_pos = options.get("initial_pos", [MIN_VAL, MIN_VAL, START_ALTITUDE]) if options else [MIN_VAL, MIN_VAL, START_ALTITUDE]
         self.initial_pos_np = np.array(initial_pos)
@@ -123,18 +131,31 @@ class DroneEnv(gym.Env):
         linear_velocity, _ = self.client.getBaseVelocity(self.drone_id)
         self.set_drone_params()
         shift = self._get_cumulative_shift()
+        alt = self._get_altitude()
+        dist = self._get_distance()
+
+        pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
+        if pos[2] < MIN_ALTITUDE:
+            vx = 0.0
+            vy = 0.0
+        else:
+            raw_vx = np.clip(linear_velocity[0] / MAX_VELOCITY, -1.0, 1.0)
+            raw_vy = np.clip(linear_velocity[1] / MAX_VELOCITY, -1.0, 1.0)
+            vx = 0.0 if abs(raw_vx) < FLOW_DEADBAND else float(raw_vx)
+            vy = 0.0 if abs(raw_vy) < FLOW_DEADBAND else float(raw_vy)
 
         obs = {
             "drone_img": self.drone_img,
-            "distance": np.array([1.0], dtype=np.float32),
+            "distance": np.array([dist], dtype=np.float32),
+            "front_distance": np.array([dist], dtype=np.float32),
             "roll": np.array([0.0], dtype=np.float32),
             "pitch": np.array([0.0], dtype=np.float32),
             "yaw": np.array([0.0], dtype=np.float32),
-            "altitude": np.array([self._get_altitude()], dtype=np.float32),
+            "altitude": np.array([alt], dtype=np.float32),
             "shift_x": np.array([shift[0]], dtype=np.float32),
             "shift_y": np.array([shift[1]], dtype=np.float32),
-            "velocity_x": np.array([np.clip(linear_velocity[0] / MAX_VELOCITY, -1.0, 1.0)], dtype=np.float32),
-            "velocity_y": np.array([np.clip(linear_velocity[1] / MAX_VELOCITY, -1.0, 1.0)], dtype=np.float32),
+            "velocity_x": np.array([vx], dtype=np.float32),
+            "velocity_y": np.array([vy], dtype=np.float32),
         }
         
         return obs, {"vertical_velocity": linear_velocity[2]}
@@ -170,19 +191,32 @@ class DroneEnv(gym.Env):
         truncated = False # Or some other condition if needed
 
         shift = self._get_cumulative_shift()
+        
+        # Optical flow velocity ground cutoff (DESIGN.md: below 0.04m optical flow is disabled)
+        pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
+        if pos[2] < MIN_ALTITUDE:
+            vel_x = 0.0
+            vel_y = 0.0
+        else:
+            raw_vx = np.clip(linear_velocity[0] / MAX_VELOCITY, -1.0, 1.0)
+            raw_vy = np.clip(linear_velocity[1] / MAX_VELOCITY, -1.0, 1.0)
+            vel_x = 0.0 if abs(raw_vx) < FLOW_DEADBAND else float(raw_vx)
+            vel_y = 0.0 if abs(raw_vy) < FLOW_DEADBAND else float(raw_vy)
+
         yaw_rate_norm = np.clip(angular_velocity[2] / MAX_YAW_RATE_RADS, -1.0, 1.0)
 
         obs = {
             "drone_img": self.drone_img,
             "distance": np.array([distance], dtype=np.float32),
+            "front_distance": np.array([distance], dtype=np.float32),
             "altitude": np.array([altitude], dtype=np.float32),
             "roll": np.array([angles[0]], dtype=np.float32),
             "pitch": np.array([angles[1]], dtype=np.float32),
             "yaw": np.array([yaw_rate_norm], dtype=np.float32),
             "shift_x": np.array([shift[0]], dtype=np.float32),
             "shift_y": np.array([shift[1]], dtype=np.float32),
-            "velocity_x": np.array([np.clip(linear_velocity[0] / MAX_VELOCITY, -1.0, 1.0)], dtype=np.float32),
-            "velocity_y": np.array([np.clip(linear_velocity[1] / MAX_VELOCITY, -1.0, 1.0)], dtype=np.float32),
+            "velocity_x": np.array([vel_x], dtype=np.float32),
+            "velocity_y": np.array([vel_y], dtype=np.float32),
         }
 
         reward = 1.0 # Basic reward
@@ -267,12 +301,15 @@ class DroneEnv(gym.Env):
     def _get_distance(self) -> float:
         pos, orn = self.client.getBasePositionAndOrientation(self.drone_id)
         rot_mat = self.client.getMatrixFromQuaternion(orn)
-        drone_direction = np.array([rot_mat[0], rot_mat[3], rot_mat[6]]) * MAX_DISTANCE
+        drone_direction = np.array([rot_mat[0], rot_mat[3], rot_mat[6]]) * MAX_FRONT_DISTANCE
         ray_result = self.client.rayTest(pos, pos + drone_direction)
         results = [hit[2] for hit in ray_result if hit[0] != -1]
-        if len(results):
-            return min(results)
-        return 1.0
+        raw_dist = min(results) if len(results) else 1.0
+        if self.filtered_front_dist is None:
+            self.filtered_front_dist = raw_dist
+        else:
+            self.filtered_front_dist = (ALPHA_FRONT * raw_dist) + ((1.0 - ALPHA_FRONT) * self.filtered_front_dist)
+        return round(float(self.filtered_front_dist), 4)
 
     def _get_angles(self) -> tuple[float, float, float]:
         _, orn = self.client.getBasePositionAndOrientation(self.drone_id)
@@ -285,7 +322,12 @@ class DroneEnv(gym.Env):
 
     def _get_altitude(self) -> float:
         pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
-        return round(pos[2] / MAX_ALTITUDE, 4)
+        raw_alt = pos[2] / MAX_ALTITUDE
+        if self.filtered_alt is None:
+            self.filtered_alt = raw_alt
+        else:
+            self.filtered_alt = (ALPHA_ALT * raw_alt) + ((1.0 - ALPHA_ALT) * self.filtered_alt)
+        return round(float(self.filtered_alt), 4)
 
     def _get_drone_view(self) -> np.ndarray:
         pos, orn = self.client.getBasePositionAndOrientation(self.drone_id)
@@ -318,10 +360,16 @@ class DroneEnv(gym.Env):
         return rgb_array[:, :, :3]
 
     def _get_cumulative_shift(self) -> list:
-        drone_pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
-        drone_pos = np.array(drone_pos)
-        # TODO: change to drone_pos - initial pos
+        pos, _ = self.client.getBasePositionAndOrientation(self.drone_id)
+        # Below 0.04m, optical flow cannot track ground movement (DESIGN.md)
+        if pos[2] < MIN_ALTITUDE:
+            return [0.0, 0.0]
+        drone_pos = np.array(pos)
         diff_world = drone_pos - self.initial_pos_np 
         shift_x = np.clip(diff_world[0] / MAX_XY_SHIFT, -1.0, 1.0)
         shift_y = np.clip(diff_world[1] / MAX_XY_SHIFT, -1.0, 1.0)
-        return [shift_x, shift_y]
+        if abs(shift_x) < FLOW_DEADBAND:
+            shift_x = 0.0
+        if abs(shift_y) < FLOW_DEADBAND:
+            shift_y = 0.0
+        return [float(shift_x), float(shift_y)]
