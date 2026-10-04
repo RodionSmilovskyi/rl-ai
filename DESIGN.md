@@ -229,4 +229,7 @@ PYTHONPATH=src python3 tests/test_inference.py --model-path trained_models/model
 
 # 4. Drone Visualizer / Headless Test
 PYTHONPATH=src python3 tests/test_drone_render.py --headless --max-steps 60
+
+# 5. Cloud Google Drive Documentation Sync
+python3 scripts/sync_to_gdrive.py
 ```
